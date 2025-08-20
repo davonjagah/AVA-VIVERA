@@ -60,12 +60,27 @@
                 </div>
             </form>
 
-            <!-- Hubtel iframe will be embedded here -->
+            <!-- Payment section -->
             <div class="payment-section" id="paymentSection" style="display: none;">
                 <h3>Complete Your Payment</h3>
-                <div class="iframe-container">
-                    <!-- Hubtel iframe will be inserted here -->
-                    <div id="hubtel-checkout-iframe"></div>
+                <div class="payment-container">
+                    <div class="payment-info">
+                        <p>You will be redirected to the secure Hubtel payment gateway to complete your transaction.</p>
+                        <div class="payment-details">
+                            <div class="detail-item">
+                                <span class="label">Amount:</span>
+                                <span class="value" id="paymentAmount">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Event:</span>
+                                <span class="value" id="paymentEvent">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="iframe-container">
+                        <!-- Hubtel iframe will be inserted here (fallback) -->
+                        <div id="hubtel-checkout-iframe"></div>
+                    </div>
                 </div>
             </div>
         </div>

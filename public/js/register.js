@@ -219,7 +219,20 @@ async function initializeHubtelPayment(
       iframeContainer ? iframeContainer.innerHTML : "Container not found"
     );
 
-    if (checkout && typeof checkout.initIframe === "function") {
+    if (checkout && typeof checkout.redirect === "function") {
+      console.log("🎯 Initializing Hubtel payment redirect...");
+      console.log("📋 Purchase Info:", purchaseInfo);
+      console.log("⚙️ Config:", config);
+
+      // Show loading message
+      showLoadingMessage("Redirecting to payment gateway...");
+
+      // Redirect to Hubtel payment page
+      checkout.redirect({
+        purchaseInfo,
+        config,
+      });
+    } else if (checkout && typeof checkout.initIframe === "function") {
       console.log("🎯 Initializing Hubtel payment iframe...");
       console.log("📋 Purchase Info:", purchaseInfo);
       console.log("⚙️ Config:", config);
@@ -284,6 +297,15 @@ function showPaymentSection() {
 
   form.style.display = "none";
   paymentSection.style.display = "block";
+
+  // Populate payment details
+  const eventType = getEventType();
+  const eventData = events[eventType];
+
+  if (eventData) {
+    document.getElementById("paymentAmount").textContent = eventData.price;
+    document.getElementById("paymentEvent").textContent = eventData.eventName;
+  }
 
   // Scroll to payment section
   paymentSection.scrollIntoView({ behavior: "smooth" });
