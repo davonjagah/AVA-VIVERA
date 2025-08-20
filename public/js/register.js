@@ -227,11 +227,18 @@ async function initializeHubtelPayment(
       // Show loading message
       showLoadingMessage("Redirecting to payment gateway...");
 
-      // Redirect to Hubtel payment page
-      checkout.redirect({
-        purchaseInfo,
-        config,
-      });
+      try {
+        // Redirect to Hubtel payment page
+        checkout.redirect({
+          purchaseInfo,
+          config,
+        });
+      } catch (error) {
+        console.error("❌ Hubtel redirect error:", error);
+        showErrorMessage(
+          "Payment gateway error. Please try again or contact support."
+        );
+      }
     } else if (checkout && typeof checkout.initIframe === "function") {
       console.log("🎯 Initializing Hubtel payment iframe...");
       console.log("📋 Purchase Info:", purchaseInfo);

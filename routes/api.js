@@ -203,6 +203,14 @@ router.post("/initiate-payment", async (req, res) => {
       phone: "***" + purchaseInfo.customerPhoneNumber.slice(-4),
     });
 
+    // Validate Hubtel credentials
+    if (!process.env.HUBTEL_APP_ID || !process.env.HUBTEL_API_KEY) {
+      console.log(`[${requestId}] ❌ Missing Hubtel credentials`);
+      return res.status(500).json({
+        error: "Payment gateway configuration error. Please contact support.",
+      });
+    }
+
     // Create config with sensitive credentials from environment
     const config = {
       branding: process.env.HUBTEL_BRANDING || "enabled",
@@ -210,7 +218,7 @@ router.post("/initiate-payment", async (req, res) => {
         process.env.CALLBACK_URL ||
         `${req.protocol}://${req.get("host")}/api/payment-callback`,
       merchantAccount: process.env.HUBTEL_APP_ID, // Use APP_ID as merchantAccount
-      basicAuth: process.env.HUBTEL_API_KEY, // Use API_KEY as basicAuthç
+      basicAuth: process.env.HUBTEL_API_KEY, // Use API_KEY as basicAuth
     };
 
     console.log(`[${requestId}] ⚙️ Config created:`, {
