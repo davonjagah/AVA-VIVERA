@@ -210,7 +210,7 @@ router.post("/initiate-payment", async (req, res) => {
         process.env.CALLBACK_URL ||
         `${req.protocol}://${req.get("host")}/api/payment-callback`,
       merchantAccount: process.env.HUBTEL_APP_ID, // Use APP_ID as merchantAccount
-      basicAuth: process.env.HUBTEL_API_KEY, // Use API_KEY as basicAuth
+      basicAuth: process.env.HUBTEL_API_KEY, // Use API_KEY as basicAuthç
     };
 
     console.log(`[${requestId}] ⚙️ Config created:`, {
@@ -251,6 +251,17 @@ router.post("/payment-callback", async (req, res) => {
   try {
     const paymentData = req.body;
 
+    // Validate required fields
+    if (!paymentData.clientReference || !paymentData.status) {
+      console.log(
+        `[${callbackId}] ❌ Invalid callback data: Missing required fields`
+      );
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid callback data",
+      });
+    }
+
     console.log(`[${callbackId}] 📋 Callback data:`, {
       status: paymentData.status,
       clientReference: paymentData.clientReference,
@@ -263,11 +274,53 @@ router.post("/payment-callback", async (req, res) => {
       timestamp: new Date().toISOString(),
     });
 
-    // Here you would typically:
-    // 1. Verify the payment signature/authenticity
-    // 2. Update your database with payment status
-    // 3. Send confirmation emails
-    // 4. Log the transaction
+    // Check if this callback has already been processed
+    try {
+      const db = await getDatabase();
+      const registrations = db.collection("registrations");
+
+      const existingRegistration = await registrations.findOne({
+        clientReference: paymentData.clientReference,
+      });
+
+      if (!existingRegistration) {
+        console.log(
+          `[${callbackId}] ❌ Registration not found for client reference: ${paymentData.clientReference}`
+        );
+        return res.status(404).json({
+          status: "error",
+          message: "Registration not found",
+        });
+      }
+
+      // Check if payment status is already final (completed/failed)
+      if (
+        existingRegistration.paymentStatus === "completed" ||
+        existingRegistration.paymentStatus === "failed"
+      ) {
+        console.log(
+          `[${callbackId}] ⚠️ Payment already processed for client reference: ${paymentData.clientReference} (Status: ${existingRegistration.paymentStatus})`
+        );
+        return res.status(200).json({
+          status: "success",
+          message: "Payment already processed",
+        });
+      }
+    } catch (dbError) {
+      console.error(`[${callbackId}] ❌ Database check error:`, dbError);
+      return res.status(500).json({
+        status: "error",
+        message: "Database error",
+      });
+    }
+
+    // TODO: Verify payment signature/authenticity with Hubtel
+    // This should be implemented based on Hubtel's security requirements
+    // const isValidSignature = verifyHubtelSignature(paymentData, req.headers);
+    // if (!isValidSignature) {
+    //   console.log(`[${callbackId}] ❌ Invalid payment signature`);
+    //   return res.status(401).json({ status: "error", message: "Invalid signature" });
+    // }
 
     if (paymentData.status === "success") {
       console.log(
@@ -424,6 +477,18 @@ router.get("/transaction-status/:clientReference", async (req, res) => {
     if (!registration) {
       return res.status(404).json({ error: "Registration not found" });
     }
+
+    // TODO: Verify with Hubtel API for real-time status
+    // This would make an API call to Hubtel to get the latest transaction status
+    // const hubtelStatus = await verifyWithHubtelAPI(clientReference);
+    // if (hubtelStatus && hubtelStatus !== registration.paymentStatus) {
+    //   // Update local database with latest status from Hubtel
+    //   await registrations.updateOne(
+    //     { clientReference },
+    //     { $set: { paymentStatus: hubtelStatus, updatedAt: new Date() } }
+    //   );
+    //   registration.paymentStatus = hubtelStatus;
+    // }
 
     res.json({
       status: registration.paymentStatus,
