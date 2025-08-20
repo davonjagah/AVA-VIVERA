@@ -179,7 +179,11 @@ router.post("/initiate-payment", async (req, res) => {
       );
     } catch (dbError) {
       console.error(`[${requestId}] ❌ Database save error:`, dbError);
+      console.log(
+        `[${requestId}] ⚠️ Continuing with payment despite database error`
+      );
       // Continue with payment even if database save fails
+      // The registration will be saved when the callback is received
     }
 
     // Extract amount from price
@@ -445,7 +449,14 @@ router.get("/registrations", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching registrations:", error);
-    res.status(500).json({ error: "Failed to fetch registrations" });
+
+    // Return empty array if database is not available
+    res.json({
+      success: true,
+      count: 0,
+      registrations: [],
+      message: "Database temporarily unavailable. Showing empty list.",
+    });
   }
 });
 
@@ -506,6 +517,28 @@ router.get("/transaction-status/:clientReference", async (req, res) => {
   } catch (error) {
     console.error("Error checking transaction status:", error);
     res.status(500).json({ error: "Failed to check transaction status" });
+  }
+});
+
+// Database health check endpoint
+router.get("/health", async (req, res) => {
+  try {
+    const db = await getDatabase();
+    await db.admin().ping();
+
+    res.json({
+      status: "healthy",
+      database: "connected",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Health check failed:", error);
+    res.status(503).json({
+      status: "unhealthy",
+      database: "disconnected",
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
   }
 });
 

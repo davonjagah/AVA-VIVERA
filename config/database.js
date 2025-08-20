@@ -18,8 +18,24 @@ async function connectToDatabase() {
 
     console.log("🔌 Connecting to MongoDB Atlas...");
     const client = new MongoClient(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      // Remove deprecated options
+      // useNewUrlParser: true, // Deprecated in MongoDB Driver 4.0+
+      // useUnifiedTopology: true, // Deprecated in MongoDB Driver 4.0+
+
+      // Add SSL/TLS configuration for Vercel
+      ssl: true,
+      tls: true,
+      tlsAllowInvalidCertificates: false,
+      tlsAllowInvalidHostnames: false,
+
+      // Connection pool settings
+      maxPoolSize: 10,
+      minPoolSize: 1,
+
+      // Timeout settings
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
     });
 
     await client.connect();
@@ -34,10 +50,22 @@ async function connectToDatabase() {
 }
 
 async function getDatabase() {
-  if (!db) {
+  try {
+    if (!db) {
+      db = await connectToDatabase();
+    }
+
+    // Test the connection
+    await db.admin().ping();
+    return db;
+  } catch (error) {
+    console.error("❌ Database connection test failed:", error);
+
+    // Reset connection and try again
+    db = null;
     db = await connectToDatabase();
+    return db;
   }
-  return db;
 }
 
 module.exports = {

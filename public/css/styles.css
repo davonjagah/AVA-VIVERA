@@ -169,11 +169,13 @@ header::after {
             margin-left: 20px;
             border-radius: 10px;
             border: 2px solid rgba(255, 255, 255, 0.1);
+            order: 2; /* Move image to the right on desktop */
         }
 
 .card-content {
     padding: 25px;
     flex: 1;
+    order: 1; /* Content on the left on desktop */
 }
 
 .card-title {
@@ -250,8 +252,10 @@ footer a:hover {
                 height: auto;
                 max-height: 300px;
                 margin-left: 0;
-                margin-top: 20px;
+                margin-top: 0;
+                margin-bottom: 20px;
                 object-fit: contain;
+                order: 1; /* Image first on mobile */
             }
 
             .header-logo-container {
@@ -278,6 +282,7 @@ footer a:hover {
 
             .card-content {
                 padding: 20px;
+                order: 2; /* Content second on mobile */
             }
 
             .card-title {
