@@ -209,15 +209,19 @@ router.post("/initiate-payment", async (req, res) => {
       callbackUrl:
         process.env.CALLBACK_URL ||
         `${req.protocol}://${req.get("host")}/api/payment-callback`,
-      appId: process.env.HUBTEL_APP_ID,
-      apiKey: process.env.HUBTEL_API_KEY,
+      merchantAccount: process.env.HUBTEL_APP_ID, // Use APP_ID as merchantAccount
+      basicAuth: process.env.HUBTEL_API_KEY, // Use API_KEY as basicAuth
     };
 
     console.log(`[${requestId}] ⚙️ Config created:`, {
       branding: config.branding,
       callbackUrl: config.callbackUrl,
-      appId: config.appId ? "***" + config.appId.slice(-4) : "NOT_SET",
-      apiKey: config.apiKey ? "***" + config.apiKey.slice(-4) : "NOT_SET",
+      merchantAccount: config.merchantAccount
+        ? "***" + config.merchantAccount.slice(-4)
+        : "NOT_SET",
+      basicAuth: config.basicAuth
+        ? "***" + config.basicAuth.slice(-4)
+        : "NOT_SET",
     });
 
     // Return the payment configuration to the client

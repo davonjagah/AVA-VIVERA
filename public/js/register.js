@@ -3,24 +3,41 @@ let checkout = null;
 
 // Initialize SDK when page loads
 document.addEventListener("DOMContentLoaded", function () {
-  try {
-    if (window.CheckoutSdk) {
-      checkout = new window.CheckoutSdk();
-      console.log("✅ Hubtel SDK loaded successfully");
-    } else {
-      console.log("⚠️ Hubtel SDK not available yet, will retry...");
-      // Retry after a short delay
-      setTimeout(() => {
-        if (window.CheckoutSdk) {
-          checkout = new window.CheckoutSdk();
-          console.log("✅ Hubtel SDK loaded on retry");
-        } else {
-          console.error("❌ Hubtel SDK failed to load");
-        }
-      }, 1000);
+  console.log("🔄 Attempting to load Hubtel SDK...");
+
+  // Function to try loading SDK
+  function tryLoadSDK() {
+    try {
+      console.log("🔍 Checking for Hubtel SDK...");
+      console.log("window.CheckoutSdk:", window.CheckoutSdk);
+      console.log("window.HubtelCheckout:", window.HubtelCheckout);
+
+      if (window.CheckoutSdk) {
+        checkout = new window.CheckoutSdk();
+        console.log("✅ Hubtel SDK loaded successfully via CheckoutSdk");
+        return true;
+      } else if (window.HubtelCheckout) {
+        checkout = window.HubtelCheckout;
+        console.log("✅ Hubtel SDK loaded via HubtelCheckout");
+        return true;
+      } else {
+        console.log("⚠️ Hubtel SDK not available yet");
+        return false;
+      }
+    } catch (error) {
+      console.error("❌ Error initializing Hubtel SDK:", error);
+      return false;
     }
-  } catch (error) {
-    console.error("❌ Error initializing Hubtel SDK:", error);
+  }
+
+  // Try immediately
+  if (!tryLoadSDK()) {
+    // Retry once after a short delay
+    setTimeout(() => {
+      if (!tryLoadSDK()) {
+        console.error("❌ Hubtel SDK failed to load");
+      }
+    }, 500);
   }
 });
 
@@ -194,8 +211,19 @@ async function initializeHubtelPayment(
     console.log("checkout object:", checkout);
     console.log("window.CheckoutSdk:", window.CheckoutSdk);
 
+    // Check iframe container
+    const iframeContainer = document.getElementById("hubtel-checkout-iframe");
+    console.log("📦 Iframe container:", iframeContainer);
+    console.log(
+      "📦 Iframe container HTML:",
+      iframeContainer ? iframeContainer.innerHTML : "Container not found"
+    );
+
     if (checkout && typeof checkout.initIframe === "function") {
       console.log("🎯 Initializing Hubtel payment iframe...");
+      console.log("📋 Purchase Info:", purchaseInfo);
+      console.log("⚙️ Config:", config);
+      console.log("🎨 Iframe Style:", iframeStyle);
 
       // Initialize the iframe with secure data from server
       checkout.initIframe({
@@ -228,18 +256,20 @@ async function initializeHubtelPayment(
           onResize: (size) => {
             console.log("📏 Iframe Resized:", size?.height);
           },
+          onError: (error) => {
+            console.error("❌ Hubtel SDK Error:", error);
+            showErrorMessage(
+              "Payment gateway error: " + (error.message || "Unknown error")
+            );
+          },
         },
       });
     } else {
-      // Fallback when Hubtel SDK is not available
-      console.log("⚠️ Hubtel SDK not available, showing fallback");
-      showLoadingMessage("Payment gateway will be integrated here...");
-
-      setTimeout(() => {
-        showSuccessMessage(
-          "Registration form submitted successfully! Payment integration will be added soon."
-        );
-      }, 2000);
+      // Hubtel SDK is not available
+      console.error("❌ Hubtel SDK not available");
+      showErrorMessage(
+        "Payment gateway is not available. Please try again later or contact support."
+      );
     }
   } catch (error) {
     console.error("Payment initialization error:", error);
