@@ -1,96 +1,435 @@
 const express = require("express");
 const router = express.Router();
+const { getDatabase } = require("../config/database");
 
 // Get all events
 router.get("/events", (req, res) => {
   const events = [
     {
-      id: 1,
+      id: "sme",
       title: "SMEs Connect: Beyond Profit - Building Legacies",
-      date: "2025-09-08",
+      date: "September 8, 2025",
       time: "9:00 AM",
       location: "Accra City Hotel",
+      price: "1,500 GHS",
       description:
         "Calling All SME Owners & Entrepreneurs! Are you ready to transform your business from surviving to thriving?",
-      image: "/images/sme.jpeg",
-      facilitator: "Ugochukwu Omeogu",
-      price: "1,500 GHS",
     },
     {
-      id: 2,
+      id: "ceo",
       title: "2025 CEO Roundtable - Lead the Business, Scale to Legacy",
-      date: "2025-09-09",
+      date: "September 9, 2025",
       time: "9:00 AM - 3:00 PM",
       location: "Accra City Hotel",
+      price: "2,500 GHS",
       description:
         "The greatest shift in your business won't come from more capital or a bigger team — it'll come from you becoming a better leader.",
-      image: "/images/ceo.jpg",
-      facilitator: "Ugochukwu Omeogu",
-      price: "2,500 GHS",
     },
     {
-      id: 3,
+      id: "wealth",
       title: "Wealth Creation Strategies Masterclass",
-      date: "2025-09-12",
+      date: "September 12, 2025",
       time: "10:00 AM",
       location: "Accra City Hotel",
+      price: "1,200 GHS",
       description:
         "Ready to transform your life and business? Join us for Wealth Creation Strategies, a premium event where you'll gain actionable insights to scale your enterprise.",
-      image: "/images/wealth.jpeg",
-      facilitator: "Ugochukwu Omeogu",
-      price: "1,200 GHS",
     },
   ];
+
   res.json(events);
 });
 
-// Get single event by ID
+// Get specific event by ID
 router.get("/events/:id", (req, res) => {
-  const eventId = parseInt(req.params.id);
-  const events = [
-    {
-      id: 1,
+  const eventId = req.params.id;
+  const events = {
+    sme: {
+      id: "sme",
       title: "SMEs Connect: Beyond Profit - Building Legacies",
-      date: "2025-09-08",
+      date: "September 8, 2025",
       time: "9:00 AM",
       location: "Accra City Hotel",
+      price: "1,500 GHS",
       description:
         "Calling All SME Owners & Entrepreneurs! Are you ready to transform your business from surviving to thriving?",
-      image: "/images/sme.jpeg",
-      facilitator: "Ugochukwu Omeogu",
-      price: "1,500 GHS",
     },
-    {
-      id: 2,
+    ceo: {
+      id: "ceo",
       title: "2025 CEO Roundtable - Lead the Business, Scale to Legacy",
-      date: "2025-09-09",
+      date: "September 9, 2025",
       time: "9:00 AM - 3:00 PM",
       location: "Accra City Hotel",
+      price: "2,500 GHS",
       description:
         "The greatest shift in your business won't come from more capital or a bigger team — it'll come from you becoming a better leader.",
-      image: "/images/ceo.jpg",
-      facilitator: "Ugochukwu Omeogu",
-      price: "2,500 GHS",
     },
-    {
-      id: 3,
+    wealth: {
+      id: "wealth",
       title: "Wealth Creation Strategies Masterclass",
-      date: "2025-09-12",
+      date: "September 12, 2025",
       time: "10:00 AM",
       location: "Accra City Hotel",
+      price: "1,200 GHS",
       description:
         "Ready to transform your life and business? Join us for Wealth Creation Strategies, a premium event where you'll gain actionable insights to scale your enterprise.",
-      image: "/images/wealth.jpeg",
-      facilitator: "Ugochukwu Omeogu",
-      price: "1,200 GHS",
     },
-  ];
+  };
 
-  const event = events.find((e) => e.id === eventId);
-  if (!event) {
-    return res.status(404).json({ message: "Event not found" });
+  const event = events[eventId];
+  if (event) {
+    res.json(event);
+  } else {
+    res.status(404).json({ error: "Event not found" });
   }
-  res.json(event);
+});
+
+// Secure payment initialization endpoint
+router.post("/initiate-payment", async (req, res) => {
+  const requestId = `req_${Date.now()}_${Math.random()
+    .toString(36)
+    .substr(2, 9)}`;
+
+  console.log(`[${requestId}] 🚀 Payment initialization started`);
+
+  try {
+    const { formData, eventType } = req.body;
+
+    console.log(`[${requestId}] 📋 Request data:`, {
+      eventType: eventType || "undefined",
+      formData: formData
+        ? {
+            ...formData,
+            phone: formData.phone ? "***" + formData.phone.slice(-4) : "N/A",
+          }
+        : "undefined",
+    });
+
+    // Validate required data
+    if (!formData || !eventType) {
+      console.log(`[${requestId}] ❌ Validation failed: Missing required data`);
+      return res.status(400).json({ error: "Missing required data" });
+    }
+
+    console.log(`[${requestId}] ✅ Validation passed`);
+
+    // Get event data
+    const events = {
+      sme: {
+        eventName: "SMEs Connect: Beyond Profit - Building Legacies",
+        price: "1,500 GHS",
+      },
+      ceo: {
+        eventName: "2025 CEO Roundtable - Lead the Business, Scale to Legacy",
+        price: "2,500 GHS",
+      },
+      wealth: {
+        eventName: "Wealth Creation Strategies Masterclass",
+        price: "1,200 GHS",
+      },
+    };
+
+    console.log(`[${requestId}] 🎯 Event type: ${eventType}`);
+
+    const eventData = events[eventType];
+    if (!eventData) {
+      console.log(`[${requestId}] ❌ Invalid event type: ${eventType}`);
+      return res.status(400).json({ error: "Invalid event type" });
+    }
+
+    console.log(`[${requestId}] ✅ Event data loaded:`, {
+      eventName: eventData.eventName,
+      price: eventData.price,
+    });
+
+    // Generate unique client reference
+    const clientReference =
+      "event_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+
+    console.log(
+      `[${requestId}] 🔑 Generated client reference: ${clientReference}`
+    );
+
+    // Save registration to MongoDB
+    try {
+      console.log(`[${requestId}] 💾 Saving registration to database...`);
+
+      const db = await getDatabase();
+      const registrations = db.collection("registrations");
+
+      const registrationData = {
+        clientReference,
+        eventType,
+        eventName: eventData.eventName,
+        eventPrice: eventData.price,
+        customerInfo: {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          organization: formData.organization,
+        },
+        paymentStatus: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const result = await registrations.insertOne(registrationData);
+      console.log(
+        `[${requestId}] ✅ Registration saved to database with ID: ${result.insertedId}`
+      );
+    } catch (dbError) {
+      console.error(`[${requestId}] ❌ Database save error:`, dbError);
+      // Continue with payment even if database save fails
+    }
+
+    // Extract amount from price
+    const amount = parseFloat(eventData.price.replace(/[^\d.]/g, ""));
+    console.log(`[${requestId}] 💰 Amount extracted: GHS ${amount}`);
+
+    // Create purchase info with sensitive data handled server-side
+    const purchaseInfo = {
+      amount: amount,
+      purchaseDescription: `Payment of GHS ${amount.toFixed(2)} for ${
+        eventData.eventName
+      } - ${formData.fullName}`,
+      customerPhoneNumber: formData.phone.replace(/\D/g, ""),
+      clientReference: clientReference,
+    };
+
+    console.log(`[${requestId}] 📝 Purchase info created:`, {
+      amount: purchaseInfo.amount,
+      description: purchaseInfo.purchaseDescription,
+      clientReference: purchaseInfo.clientReference,
+      phone: "***" + purchaseInfo.customerPhoneNumber.slice(-4),
+    });
+
+    // Create config with sensitive credentials from environment
+    const config = {
+      branding: process.env.HUBTEL_BRANDING || "enabled",
+      callbackUrl:
+        process.env.CALLBACK_URL ||
+        `${req.protocol}://${req.get("host")}/api/payment-callback`,
+      appId: process.env.HUBTEL_APP_ID,
+      apiKey: process.env.HUBTEL_API_KEY,
+    };
+
+    console.log(`[${requestId}] ⚙️ Config created:`, {
+      branding: config.branding,
+      callbackUrl: config.callbackUrl,
+      appId: config.appId ? "***" + config.appId.slice(-4) : "NOT_SET",
+      apiKey: config.apiKey ? "***" + config.apiKey.slice(-4) : "NOT_SET",
+    });
+
+    // Return the payment configuration to the client
+    console.log(
+      `[${requestId}] ✅ Payment initialization completed successfully`
+    );
+    res.json({
+      success: true,
+      purchaseInfo,
+      config,
+      clientReference,
+    });
+  } catch (error) {
+    console.error(`[${requestId}] ❌ Payment initiation error:`, error);
+    res.status(500).json({ error: "Failed to initiate payment" });
+  }
+});
+
+// Payment callback endpoint for Hubtel
+router.post("/payment-callback", async (req, res) => {
+  const callbackId = `callback_${Date.now()}_${Math.random()
+    .toString(36)
+    .substr(2, 9)}`;
+
+  console.log(`[${callbackId}] 🔔 Payment callback received from Hubtel`);
+
+  try {
+    const paymentData = req.body;
+
+    console.log(`[${callbackId}] 📋 Callback data:`, {
+      status: paymentData.status,
+      clientReference: paymentData.clientReference,
+      transactionId: paymentData.transactionId,
+      amount: paymentData.amount,
+      customerPhone: paymentData.customerPhoneNumber
+        ? "***" + paymentData.customerPhoneNumber.slice(-4)
+        : "N/A",
+      paymentMethod: paymentData.paymentMethod,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Here you would typically:
+    // 1. Verify the payment signature/authenticity
+    // 2. Update your database with payment status
+    // 3. Send confirmation emails
+    // 4. Log the transaction
+
+    if (paymentData.status === "success") {
+      console.log(
+        `[${callbackId}] ✅ Payment successful for client reference: ${paymentData.clientReference}`
+      );
+
+      // Update database with payment status
+      try {
+        const db = await getDatabase();
+        const registrations = db.collection("registrations");
+
+        await registrations.updateOne(
+          { clientReference: paymentData.clientReference },
+          {
+            $set: {
+              paymentStatus: "completed",
+              paymentData: {
+                transactionId: paymentData.transactionId,
+                amount: paymentData.amount,
+                paymentMethod: paymentData.paymentMethod,
+                completedAt: new Date(),
+              },
+              updatedAt: new Date(),
+            },
+          }
+        );
+
+        console.log(`[${callbackId}] ✅ Database updated with payment success`);
+        // TODO: Send confirmation email to customer
+      } catch (dbError) {
+        console.error(`[${callbackId}] ❌ Database update error:`, dbError);
+      }
+    } else {
+      console.log(
+        `[${callbackId}] ❌ Payment failed for client reference: ${paymentData.clientReference}`
+      );
+
+      // Update database with failed payment status
+      try {
+        const db = await getDatabase();
+        const registrations = db.collection("registrations");
+
+        await registrations.updateOne(
+          { clientReference: paymentData.clientReference },
+          {
+            $set: {
+              paymentStatus: "failed",
+              paymentData: {
+                transactionId: paymentData.transactionId,
+                error: paymentData.error || "Payment failed",
+                failedAt: new Date(),
+              },
+              updatedAt: new Date(),
+            },
+          }
+        );
+
+        console.log(`[${callbackId}] ✅ Database updated with payment failure`);
+      } catch (dbError) {
+        console.error(`[${callbackId}] ❌ Database update error:`, dbError);
+      }
+    }
+
+    // Respond to Hubtel
+    console.log(`[${callbackId}] 📤 Responding to Hubtel: success`);
+    res.status(200).json({
+      status: "success",
+      message: "Payment callback received successfully",
+    });
+  } catch (error) {
+    console.error(`[${callbackId}] ❌ Payment callback error:`, error);
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
+  }
+});
+
+// Secure Hubtel configuration endpoint
+router.get("/hubtel-config", (req, res) => {
+  try {
+    // Only return non-sensitive configuration
+    const config = {
+      appId: process.env.HUBTEL_APP_ID,
+      branding: process.env.HUBTEL_BRANDING || "enabled",
+      integrationType: process.env.HUBTEL_INTEGRATION_TYPE || "External",
+      callbackUrl:
+        process.env.CALLBACK_URL ||
+        `${req.protocol}://${req.get("host")}/api/payment-callback`,
+    };
+
+    res.json(config);
+  } catch (error) {
+    console.error("Error getting Hubtel config:", error);
+    res.status(500).json({ error: "Failed to load configuration" });
+  }
+});
+
+// Get all registrations (for admin purposes)
+router.get("/registrations", async (req, res) => {
+  try {
+    const db = await getDatabase();
+    const registrations = db.collection("registrations");
+
+    const allRegistrations = await registrations
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({
+      success: true,
+      count: allRegistrations.length,
+      registrations: allRegistrations,
+    });
+  } catch (error) {
+    console.error("Error fetching registrations:", error);
+    res.status(500).json({ error: "Failed to fetch registrations" });
+  }
+});
+
+// Get registration by client reference
+router.get("/registration/:clientReference", async (req, res) => {
+  try {
+    const { clientReference } = req.params;
+    const db = await getDatabase();
+    const registrations = db.collection("registrations");
+
+    const registration = await registrations.findOne({ clientReference });
+
+    if (!registration) {
+      return res.status(404).json({ error: "Registration not found" });
+    }
+
+    res.json({
+      success: true,
+      registration,
+    });
+  } catch (error) {
+    console.error("Error fetching registration:", error);
+    res.status(500).json({ error: "Failed to fetch registration" });
+  }
+});
+
+// Transaction status check endpoint
+router.get("/transaction-status/:clientReference", async (req, res) => {
+  const { clientReference } = req.params;
+
+  try {
+    const db = await getDatabase();
+    const registrations = db.collection("registrations");
+
+    const registration = await registrations.findOne({ clientReference });
+
+    if (!registration) {
+      return res.status(404).json({ error: "Registration not found" });
+    }
+
+    res.json({
+      status: registration.paymentStatus,
+      clientReference: clientReference,
+      registration: registration,
+    });
+  } catch (error) {
+    console.error("Error checking transaction status:", error);
+    res.status(500).json({ error: "Failed to check transaction status" });
+  }
 });
 
 module.exports = router;

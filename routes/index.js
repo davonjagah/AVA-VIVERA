@@ -12,4 +12,9 @@ router.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "views", "register.html"));
 });
 
+// Admin page route
+router.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "views", "admin.html"));
+});
+
 module.exports = router;

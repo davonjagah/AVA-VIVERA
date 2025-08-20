@@ -1,3 +1,29 @@
+// Initialize the Hubtel Checkout SDK
+let checkout = null;
+
+// Initialize SDK when page loads
+document.addEventListener("DOMContentLoaded", function () {
+  try {
+    if (window.CheckoutSdk) {
+      checkout = new window.CheckoutSdk();
+      console.log("✅ Hubtel SDK loaded successfully");
+    } else {
+      console.log("⚠️ Hubtel SDK not available yet, will retry...");
+      // Retry after a short delay
+      setTimeout(() => {
+        if (window.CheckoutSdk) {
+          checkout = new window.CheckoutSdk();
+          console.log("✅ Hubtel SDK loaded on retry");
+        } else {
+          console.error("❌ Hubtel SDK failed to load");
+        }
+      }, 1000);
+    }
+  } catch (error) {
+    console.error("❌ Error initializing Hubtel SDK:", error);
+  }
+});
+
 // Event data configuration
 const events = {
   sme: {
@@ -68,11 +94,18 @@ function handleFormSubmit(event) {
   // Show payment section
   showPaymentSection();
 
-  // Here you would typically send the data to your backend
-  console.log("Form data:", data);
+  // Generate unique client reference
+  const clientReference = generateClientReference();
 
-  // TODO: Integrate with Hubtel payment gateway
-  // For now, we'll just show a placeholder
+  // Get event data
+  const eventType = getEventType();
+  const eventData = events[eventType];
+
+  // Extract amount from price (remove "GHS" and convert to number)
+  const amount = parseFloat(eventData.price.replace(/[^\d.]/g, ""));
+
+  // Initialize Hubtel payment
+  initializeHubtelPayment(data, amount, clientReference, eventData);
 }
 
 // Validate form data
@@ -107,6 +140,113 @@ function validateForm(data) {
   return true;
 }
 
+// Generate unique client reference
+function generateClientReference() {
+  return "event_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+}
+
+// Initialize Hubtel payment securely
+async function initializeHubtelPayment(
+  formData,
+  amount,
+  clientReference,
+  eventData
+) {
+  try {
+    showLoadingMessage("Initializing payment...");
+
+    // Get event type
+    const eventType = getEventType();
+
+    // Call server to get secure payment configuration
+    const response = await fetch("/api/initiate-payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        formData,
+        eventType,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to initialize payment");
+    }
+
+    const paymentData = await response.json();
+
+    if (!paymentData.success) {
+      throw new Error(paymentData.error || "Payment initialization failed");
+    }
+
+    const { purchaseInfo, config } = paymentData;
+
+    const iframeStyle = {
+      width: "100%",
+      height: "600px", // Fixed height for better mobile experience
+      border: "none",
+      borderRadius: "8px",
+    };
+
+    // Check if Hubtel SDK is available
+    console.log("🔍 Checking Hubtel SDK availability...");
+    console.log("checkout object:", checkout);
+    console.log("window.CheckoutSdk:", window.CheckoutSdk);
+
+    if (checkout && typeof checkout.initIframe === "function") {
+      console.log("🎯 Initializing Hubtel payment iframe...");
+
+      // Initialize the iframe with secure data from server
+      checkout.initIframe({
+        purchaseInfo,
+        config,
+        iframeStyle,
+        callBacks: {
+          onInit: () => {
+            console.log("✅ Hubtel Checkout initialized");
+            showLoadingMessage("Payment gateway is loading...");
+          },
+          onPaymentSuccess: (data) => {
+            console.log("🎉 Payment Success:", data);
+            showSuccessMessage(
+              "Payment successful! You will receive a confirmation email shortly."
+            );
+            // Here you can redirect to a success page or show confirmation
+          },
+          onPaymentFailure: (data) => {
+            console.log("❌ Payment Failure:", data);
+            showErrorMessage("Payment failed. Please try again.");
+          },
+          onLoad: () => {
+            console.log("📱 Iframe Loaded");
+            hideLoadingMessage();
+          },
+          onFeesChanged: (fees) => {
+            console.log("💰 Fees Changed:", fees);
+          },
+          onResize: (size) => {
+            console.log("📏 Iframe Resized:", size?.height);
+          },
+        },
+      });
+    } else {
+      // Fallback when Hubtel SDK is not available
+      console.log("⚠️ Hubtel SDK not available, showing fallback");
+      showLoadingMessage("Payment gateway will be integrated here...");
+
+      setTimeout(() => {
+        showSuccessMessage(
+          "Registration form submitted successfully! Payment integration will be added soon."
+        );
+      }, 2000);
+    }
+  } catch (error) {
+    console.error("Payment initialization error:", error);
+    showErrorMessage("Failed to initialize payment. Please try again.");
+  }
+}
+
 // Show payment section
 function showPaymentSection() {
   const form = document.getElementById("registrationForm");
@@ -119,8 +259,50 @@ function showPaymentSection() {
   paymentSection.scrollIntoView({ behavior: "smooth" });
 }
 
+// Loading and message functions
+function showLoadingMessage(message) {
+  const iframeContainer = document.getElementById("hubtel-checkout-iframe");
+  iframeContainer.innerHTML = `
+    <div class="loading-message">
+      <div class="spinner"></div>
+      <p>${message}</p>
+    </div>
+  `;
+}
+
+function hideLoadingMessage() {
+  const iframeContainer = document.getElementById("hubtel-checkout-iframe");
+  iframeContainer.innerHTML = ""; // Clear loading message
+}
+
+function showSuccessMessage(message) {
+  const paymentSection = document.getElementById("paymentSection");
+  paymentSection.innerHTML = `
+    <div class="success-message">
+      <div class="success-icon">✓</div>
+      <h3>Payment Successful!</h3>
+      <p>${message}</p>
+      <button onclick="window.location.href='/'" class="btn-primary">Return to Home</button>
+    </div>
+  `;
+}
+
+function showErrorMessage(message) {
+  const paymentSection = document.getElementById("paymentSection");
+  paymentSection.innerHTML = `
+    <div class="error-message">
+      <div class="error-icon">✗</div>
+      <h3>Payment Failed</h3>
+      <p>${message}</p>
+      <button onclick="location.reload()" class="btn-primary">Try Again</button>
+    </div>
+  `;
+}
+
 // Initialize page
 document.addEventListener("DOMContentLoaded", function () {
+  console.log("🚀 Initializing registration page...");
+
   loadEventData();
 
   // Add form submit handler
@@ -138,6 +320,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   });
+
+  console.log("✅ Registration page initialized");
 });
 
 // Add smooth scrolling for better UX

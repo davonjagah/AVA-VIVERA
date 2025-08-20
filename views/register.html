@@ -26,22 +26,22 @@
             <form class="registration-form" id="registrationForm">
                 <div class="form-group">
                     <label for="fullName">Full Name *</label>
-                    <input type="text" id="fullName" name="fullName" required>
+                    <input type="text" id="fullName" name="fullName" value="John Doe" required>
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email Address *</label>
-                    <input type="email" id="email" name="email" required>
+                    <input type="email" id="email" name="email" value="john.doe@example.com" required>
                 </div>
 
                 <div class="form-group">
                     <label for="phone">Phone Number *</label>
-                    <input type="tel" id="phone" name="phone" required>
+                    <input type="tel" id="phone" name="phone" value="0200000000" required>
                 </div>
 
                 <div class="form-group">
                     <label for="organization">Organization/Company *</label>
-                    <input type="text" id="organization" name="organization" required>
+                    <input type="text" id="organization" name="organization" value="Test Company Ltd" required>
                 </div>
 
                 <div class="form-group">
@@ -65,9 +65,7 @@
                 <h3>Complete Your Payment</h3>
                 <div class="iframe-container">
                     <!-- Hubtel iframe will be inserted here -->
-                    <div class="iframe-placeholder">
-                        <p>Payment gateway will be integrated here</p>
-                    </div>
+                    <div id="hubtel-checkout-iframe"></div>
                 </div>
             </div>
         </div>
@@ -78,6 +76,8 @@
         <p><a href="https://www.accessviewafrica.com">View Africa</a> | <a href="https://www.vivera.com">Vivera</a></p>
     </footer>
 
+    <!-- Hubtel Checkout SDK CDN -->
+    <script src="https://unpkg.com/@hubteljs/checkout@1.1.3/dist/index.js"></script>
     <script src="/js/register.js"></script>
 </body>
 </html> 

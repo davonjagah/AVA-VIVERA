@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 
@@ -34,4 +35,4 @@ app.use((req, res) => {
 });
 
 // Export the Express app for Vercel
-module.exports = app; 
+module.exports = app;

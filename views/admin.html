@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Registrations</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .refresh-btn {
+            background: linear-gradient(135deg, #1e5631, #2d8659);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .refresh-btn:hover {
+            background: linear-gradient(135deg, #2d8659, #44b678);
+        }
+        .table-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-x: auto;
+        }
+        .registrations-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #fff;
+            min-width: 800px; /* Ensure minimum width for desktop */
+        }
+        .registrations-table th,
+        .registrations-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .registrations-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            color: #44b678;
+            white-space: nowrap;
+        }
+        .registrations-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Mobile-friendly card view */
+        .mobile-cards {
+            display: none;
+        }
+        
+        .mobile-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .mobile-card h3 {
+            margin: 0 0 10px 0;
+            color: #44b678;
+            font-size: 1.1em;
+        }
+        
+        .mobile-card p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        
+        .mobile-card .label {
+            font-weight: 600;
+            color: #888;
+        }
+        .status-pending { 
+            color: #f39c12; 
+            font-weight: 600;
+        }
+        .status-completed { 
+            color: #27ae60; 
+            font-weight: 600;
+        }
+        .status-failed { 
+            color: #e74c3c; 
+            font-weight: 600;
+        }
+        .client-ref {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #888;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #44b678;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 10px;
+            }
+            
+            .admin-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .admin-header h1 {
+                font-size: 1.5rem;
+                margin: 0;
+            }
+            
+            .table-container {
+                padding: 10px;
+            }
+            
+            .registrations-table {
+                display: none; /* Hide table on mobile */
+            }
+            
+            .mobile-cards {
+                display: block; /* Show cards on mobile */
+            }
+            
+            .mobile-card {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-logo-container">
+            <img src="/images/logo.png" alt="Event Logo 1" class="header-logo">
+            <img src="/images/vivera.png" alt="Event Logo 2" class="header-logo">
+        </div>
+    </header>
+
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>Registration Admin Panel</h1>
+            <button class="refresh-btn" onclick="loadRegistrations()">🔄 Refresh</button>
+        </div>
+        
+        <div class="table-container">
+            <div id="registrations-container">
+                <div class="loading">Loading registrations...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadRegistrations() {
+            try {
+                const response = await fetch('/api/registrations');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayRegistrations(data.registrations);
+                } else {
+                    document.getElementById('registrations-container').innerHTML = 
+                        '<p>Error loading registrations</p>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('registrations-container').innerHTML = 
+                    '<p>Error loading registrations</p>';
+            }
+        }
+
+        function displayRegistrations(registrations) {
+            const container = document.getElementById('registrations-container');
+            
+            if (registrations.length === 0) {
+                container.innerHTML = '<div class="no-data">No registrations found</div>';
+                return;
+            }
+
+            // Desktop table view
+            const tableHTML = `
+                <table class="registrations-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Event</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Organization</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Transaction ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${registrations.map(reg => `
+                            <tr>
+                                <td>${reg.customerInfo.fullName}</td>
+                                <td>${reg.eventName}</td>
+                                <td>${reg.customerInfo.email}</td>
+                                <td>${reg.customerInfo.phone}</td>
+                                <td>${reg.customerInfo.organization}</td>
+                                <td>${reg.eventPrice}</td>
+                                <td><span class="status-${reg.paymentStatus}">${reg.paymentStatus.toUpperCase()}</span></td>
+                                <td>${new Date(reg.createdAt).toLocaleDateString()}</td>
+                                <td>${reg.paymentData?.transactionId || 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            // Mobile card view
+            const mobileHTML = `
+                <div class="mobile-cards">
+                    ${registrations.map(reg => `
+                        <div class="mobile-card">
+                            <h3>${reg.customerInfo.fullName}</h3>
+                            <p><span class="label">Event:</span> ${reg.eventName}</p>
+                            <p><span class="label">Email:</span> ${reg.customerInfo.email}</p>
+                            <p><span class="label">Phone:</span> ${reg.customerInfo.phone}</p>
+                            <p><span class="label">Organization:</span> ${reg.customerInfo.organization}</p>
+                            <p><span class="label">Price:</span> ${reg.eventPrice}</p>
+                            <p><span class="label">Status:</span> <span class="status-${reg.paymentStatus}">${reg.paymentStatus.toUpperCase()}</span></p>
+                            <p><span class="label">Created:</span> ${new Date(reg.createdAt).toLocaleDateString()}</p>
+                            ${reg.paymentData?.transactionId ? `<p><span class="label">Transaction ID:</span> ${reg.paymentData.transactionId}</p>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            container.innerHTML = tableHTML + mobileHTML;
+        }
+
+        // Load registrations on page load
+        document.addEventListener('DOMContentLoaded', loadRegistrations);
+    </script>
+</body>
+</html>
