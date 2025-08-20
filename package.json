@@ -1,0 +1,21 @@
+{
+  "name": "value-creation-summit",
+  "version": "1.0.0",
+  "description": "Value Creation Summit Event Website",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["events", "summit", "business", "ghana"],
+  "author": "Access View Africa & Vivera Ecosystem",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+} 

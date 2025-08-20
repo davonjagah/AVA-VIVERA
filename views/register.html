@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Registration</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/register.css">
+</head>
+<body>
+    <header>
+        <div class="header-logo-container">
+            <img src="/images/logo.png" alt="Event Logo 1" class="header-logo">
+            <img src="/images/vivera.png" alt="Event Logo 2" class="header-logo">
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="registration-card">
+            <div class="registration-header">
+                <h1 id="eventTitle">Register for Event</h1>
+                <p class="event-subtitle" id="eventSubtitle">Event Details</p>
+                <p class="event-details" id="eventDetails">Date • Time • Location • Price</p>
+            </div>
+
+            <form class="registration-form" id="registrationForm">
+                <div class="form-group">
+                    <label for="fullName">Full Name *</label>
+                    <input type="text" id="fullName" name="fullName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="organization">Organization/Company *</label>
+                    <input type="text" id="organization" name="organization" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="event">Selected Event</label>
+                    <input type="text" id="event" name="event" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="price">Event Price</label>
+                    <input type="text" id="price" name="price" disabled>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="window.history.back()">Back</button>
+                    <button type="submit" class="btn-primary">Proceed to Payment</button>
+                </div>
+            </form>
+
+            <!-- Hubtel iframe will be embedded here -->
+            <div class="payment-section" id="paymentSection" style="display: none;">
+                <h3>Complete Your Payment</h3>
+                <div class="iframe-container">
+                    <!-- Hubtel iframe will be inserted here -->
+                    <div class="iframe-placeholder">
+                        <p>Payment gateway will be integrated here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Event Organizer. All rights reserved.</p>
+        <p><a href="https://www.accessviewafrica.com">View Africa</a> | <a href="https://www.vivera.com">Vivera</a></p>
+    </footer>
+
+    <script src="/js/register.js"></script>
+</body>
+</html> 
