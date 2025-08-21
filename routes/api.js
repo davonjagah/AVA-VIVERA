@@ -628,7 +628,7 @@ router.get("/verify/:clientReference", async (req, res) => {
         email: registration.customerInfo.email,
         eventName: registration.eventName,
         clientReference: registration.clientReference,
-        amount: registration.amount,
+        amount: registration.paymentData?.amount || registration.amount,
         paymentStatus: registration.paymentStatus,
         registrationDate: registration.createdAt,
       },

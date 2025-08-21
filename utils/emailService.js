@@ -1,7 +1,13 @@
 const nodemailer = require("nodemailer");
 const QRCode = require("qrcode");
-const fs = require("fs");
-const path = require("path");
+const cloudinary = require("cloudinary").v2;
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Generate QR code for registration verification
 async function generateQRCode(registrationId) {
@@ -21,28 +27,24 @@ async function generateQRCode(registrationId) {
       },
     });
 
-    // Create filename
-    const filename = `${registrationId}.png`;
-    const filepath = path.join(
-      __dirname,
-      "..",
-      "public",
-      "images",
-      "qr-codes",
-      filename
-    );
+    // Convert buffer to base64
+    const base64Image = qrCodeBuffer.toString("base64");
+    const dataURI = `data:image/png;base64,${base64Image}`;
 
-    // Ensure directory exists
-    const dir = path.dirname(filepath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    // Upload to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(dataURI, {
+      folder: "qr-codes",
+      public_id: registrationId,
+      overwrite: true,
+      resource_type: "image",
+      transformation: [
+        { width: 300, height: 300, crop: "fill" },
+        { quality: "auto" },
+      ],
+    });
 
-    // Save QR code as image file
-    fs.writeFileSync(filepath, qrCodeBuffer);
-
-    // Return relative URL for email
-    return `/images/qr-codes/${filename}`;
+    // Return Cloudinary URL
+    return uploadResult.secure_url;
   } catch (error) {
     console.error("QR code generation failed:", error);
     return null;
@@ -117,11 +119,11 @@ const emailTemplates = {
             </table>
           </div>
           
-          <div style="text-align: center; margin: 30px 0; background: white; padding: 20px; border-radius: 8px;">
+                    <div style="text-align: center; margin: 30px 0; background: white; padding: 20px; border-radius: 8px;">
             <h4 style="color: #2d8659; margin-top: 0;">Your Entry QR Code</h4>
-            <img src="${process.env.BASE_URL || "http://localhost:3000"}${
-      data.qrCode
-    }" alt="Registration QR Code" style="max-width: 200px; border: 2px solid #ddd; border-radius: 8px;">
+            <img src="${
+              data.qrCode
+            }" alt="Registration QR Code" style="max-width: 200px; border: 2px solid #ddd; border-radius: 8px;">
             <p style="font-size: 12px; color: #666; margin-top: 10px;">Present this QR code at the event entrance</p>
           </div>
           
@@ -243,11 +245,17 @@ async function sendPaymentConfirmation(registrationData, paymentData) {
   // Generate QR code for registration verification
   const qrCode = await generateQRCode(registrationData.clientReference);
 
+  // Handle different payment data structures
+  let amount = paymentData.amount;
+  if (!amount && paymentData.Amount) {
+    amount = paymentData.Amount; // Hubtel callback structure
+  }
+
   const emailData = {
     customerName: registrationData.customerInfo.fullName,
     eventName: registrationData.eventName,
     clientReference: registrationData.clientReference,
-    amount: paymentData.amount,
+    amount: amount,
     eventDate: registrationData.eventDate || "September 9, 2025",
     eventLocation: registrationData.eventLocation || "Accra City Hotel",
     qrCode: qrCode,
@@ -262,11 +270,17 @@ async function sendPaymentConfirmation(registrationData, paymentData) {
 
 // Send payment failure email
 async function sendPaymentFailure(registrationData, paymentData) {
+  // Handle different payment data structures
+  let amount = paymentData.amount;
+  if (!amount && paymentData.Amount) {
+    amount = paymentData.Amount; // Hubtel callback structure
+  }
+
   const emailData = {
     customerName: registrationData.customerInfo.fullName,
     eventName: registrationData.eventName,
     clientReference: registrationData.clientReference,
-    amount: paymentData.amount,
+    amount: amount,
     paymentDate: new Date().toLocaleDateString("en-GH", {
       year: "numeric",
       month: "long",
