@@ -118,8 +118,7 @@ router.post("/initiate-payment", async (req, res) => {
 
     // Create Hubtel Online Checkout API request
     const hubtelRequest = {
-      //totalAmount: amount,
-      totalAmount: 2,
+      totalAmount: amount,
       description: `Payment for ${eventData.title} - ${formData.fullName}`,
       callbackUrl:
         process.env.CALLBACK_URL ||
