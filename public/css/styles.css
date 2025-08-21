@@ -116,6 +116,13 @@ header::after {
     padding-bottom: 5px;
 }
 
+.event-dates, .event-location {
+    font-size: 1.5rem !important;
+    color: #44b678 !important;
+    text-align: center;
+    margin: 10px 0 !important;
+}
+
 
 
 .info-section .contact-details {
@@ -194,6 +201,73 @@ header::after {
 
 .card-info p {
     margin: 8px 0;
+}
+
+.value-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(68, 182, 120, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #44b678;
+}
+
+.value-section h3 {
+    color: #44b678;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.value-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.value-section li {
+    color: #d0d0d0;
+    margin: 8px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.value-section li:before {
+    content: "•";
+    color: #44b678;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+}
+
+.event-details {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.event-details p {
+    margin: 5px 0;
+    color: #e0e0e0;
+}
+
+.call-to-action {
+    font-size: 1.2rem !important;
+    color: #44b678 !important;
+    font-weight: 600 !important;
+    margin: 20px 0 10px 0 !important;
+}
+
+.cta-subtitle {
+    color: #b0b0b0 !important;
+    font-style: italic;
+    margin-bottom: 20px !important;
+}
+
+.subtitle {
+    color: #44b678;
+    font-size: 1.1rem;
+    margin: -10px 0 15px 0;
+    font-style: italic;
 }
 
 .card-button {
