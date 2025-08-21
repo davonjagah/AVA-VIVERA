@@ -3,29 +3,19 @@ let checkout = null;
 
 // Initialize SDK when page loads
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("🔄 Attempting to load Hubtel SDK...");
-
   // Function to try loading SDK
   function tryLoadSDK() {
     try {
-      console.log("🔍 Checking for Hubtel SDK...");
-      console.log("window.CheckoutSdk:", window.CheckoutSdk);
-      console.log("window.HubtelCheckout:", window.HubtelCheckout);
-
       if (window.CheckoutSdk) {
         checkout = new window.CheckoutSdk();
-        console.log("✅ Hubtel SDK loaded successfully via CheckoutSdk");
         return true;
       } else if (window.HubtelCheckout) {
         checkout = window.HubtelCheckout;
-        console.log("✅ Hubtel SDK loaded via HubtelCheckout");
         return true;
       } else {
-        console.log("⚠️ Hubtel SDK not available yet");
         return false;
       }
     } catch (error) {
-      console.error("❌ Error initializing Hubtel SDK:", error);
       return false;
     }
   }
@@ -34,38 +24,12 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!tryLoadSDK()) {
     // Retry once after a short delay
     setTimeout(() => {
-      if (!tryLoadSDK()) {
-        console.error("❌ Hubtel SDK failed to load");
-      }
+      tryLoadSDK();
     }, 500);
   }
 });
 
-// Event data configuration
-const events = {
-  sme: {
-    title: "Register for SMEs Connect",
-    subtitle: "Beyond Profit - Building Legacies",
-    details: "September 8, 2025 • 9:00 AM • Accra City Hotel • 1,500 GHS",
-    eventName: "SMEs Connect: Beyond Profit - Building Legacies",
-    price: "1,500 GHS",
-  },
-  ceo: {
-    title: "Register for CEO Roundtable",
-    subtitle: "Lead the Business, Scale to Legacy",
-    details:
-      "September 9, 2025 • 9:00 AM - 3:00 PM • Accra City Hotel • 2,500 GHS",
-    eventName: "2025 CEO Roundtable - Lead the Business, Scale to Legacy",
-    price: "2,500 GHS",
-  },
-  wealth: {
-    title: "Register for Wealth Creation Masterclass",
-    subtitle: "Wealth Creation Strategies Masterclass",
-    details: "September 12, 2025 • 10:00 AM • Accra City Hotel • 1,200 GHS",
-    eventName: "Wealth Creation Strategies Masterclass",
-    price: "1,200 GHS",
-  },
-};
+// Events configuration is loaded from events-config.js
 
 // Get event type from URL parameter
 function getEventType() {
@@ -75,11 +39,15 @@ function getEventType() {
 
 // Load event data and populate form
 function loadEventData() {
+  // Check if events object is available
+  if (typeof window.events === "undefined") {
+    return;
+  }
+
   const eventType = getEventType();
-  const eventData = events[eventType];
+  const eventData = window.events[eventType];
 
   if (!eventData) {
-    console.error("Event not found");
     return;
   }
 
@@ -87,13 +55,17 @@ function loadEventData() {
   document.title = eventData.title;
 
   // Update header content
-  document.getElementById("eventTitle").textContent = eventData.title;
-  document.getElementById("eventSubtitle").textContent = eventData.subtitle;
-  document.getElementById("eventDetails").textContent = eventData.details;
+  const eventTitle = document.getElementById("eventTitle");
+  const eventSubtitle = document.getElementById("eventSubtitle");
+  const eventDetails = document.getElementById("eventDetails");
+  const eventField = document.getElementById("event");
+  const priceField = document.getElementById("price");
 
-  // Update form fields
-  document.getElementById("event").value = eventData.eventName;
-  document.getElementById("price").value = eventData.price;
+  if (eventTitle) eventTitle.textContent = eventData.title;
+  if (eventSubtitle) eventSubtitle.textContent = eventData.subtitle;
+  if (eventDetails) eventDetails.textContent = eventData.details;
+  if (eventField) eventField.value = eventData.eventName;
+  if (priceField) priceField.value = eventData.price;
 }
 
 // Handle form submission
@@ -116,7 +88,7 @@ function handleFormSubmit(event) {
 
   // Get event data
   const eventType = getEventType();
-  const eventData = events[eventType];
+  const eventData = window.events[eventType];
 
   // Extract amount from price (remove "GHS" and convert to number)
   const amount = parseFloat(eventData.price.replace(/[^\d.]/g, ""));
@@ -197,102 +169,9 @@ async function initializeHubtelPayment(
       throw new Error(paymentData.error || "Payment initialization failed");
     }
 
-    const { purchaseInfo, config } = paymentData;
-
-    const iframeStyle = {
-      width: "100%",
-      height: "600px", // Fixed height for better mobile experience
-      border: "none",
-      borderRadius: "8px",
-    };
-
-    // Check if Hubtel SDK is available
-    console.log("🔍 Checking Hubtel SDK availability...");
-    console.log("checkout object:", checkout);
-    console.log("window.CheckoutSdk:", window.CheckoutSdk);
-
-    // Check iframe container
-    const iframeContainer = document.getElementById("hubtel-checkout-iframe");
-    console.log("📦 Iframe container:", iframeContainer);
-    console.log(
-      "📦 Iframe container HTML:",
-      iframeContainer ? iframeContainer.innerHTML : "Container not found"
-    );
-
-    if (checkout && typeof checkout.redirect === "function") {
-      console.log("🎯 Initializing Hubtel payment redirect...");
-      console.log("📋 Purchase Info:", purchaseInfo);
-      console.log("⚙️ Config:", config);
-
-      // Show loading message
-      showLoadingMessage("Redirecting to payment gateway...");
-
-      try {
-        // Redirect to Hubtel payment page
-        checkout.redirect({
-          purchaseInfo,
-          config,
-        });
-      } catch (error) {
-        console.error("❌ Hubtel redirect error:", error);
-        showErrorMessage(
-          "Payment gateway error. Please try again or contact support."
-        );
-      }
-    } else if (checkout && typeof checkout.initIframe === "function") {
-      console.log("🎯 Initializing Hubtel payment iframe...");
-      console.log("📋 Purchase Info:", purchaseInfo);
-      console.log("⚙️ Config:", config);
-      console.log("🎨 Iframe Style:", iframeStyle);
-
-      // Initialize the iframe with secure data from server
-      checkout.initIframe({
-        purchaseInfo,
-        config,
-        iframeStyle,
-        callBacks: {
-          onInit: () => {
-            console.log("✅ Hubtel Checkout initialized");
-            showLoadingMessage("Payment gateway is loading...");
-          },
-          onPaymentSuccess: (data) => {
-            console.log("🎉 Payment Success:", data);
-            showSuccessMessage(
-              "Payment successful! You will receive a confirmation email shortly."
-            );
-            // Here you can redirect to a success page or show confirmation
-          },
-          onPaymentFailure: (data) => {
-            console.log("❌ Payment Failure:", data);
-            showErrorMessage("Payment failed. Please try again.");
-          },
-          onLoad: () => {
-            console.log("📱 Iframe Loaded");
-            hideLoadingMessage();
-          },
-          onFeesChanged: (fees) => {
-            console.log("💰 Fees Changed:", fees);
-          },
-          onResize: (size) => {
-            console.log("📏 Iframe Resized:", size?.height);
-          },
-          onError: (error) => {
-            console.error("❌ Hubtel SDK Error:", error);
-            showErrorMessage(
-              "Payment gateway error: " + (error.message || "Unknown error")
-            );
-          },
-        },
-      });
-    } else {
-      // Hubtel SDK is not available
-      console.error("❌ Hubtel SDK not available");
-      showErrorMessage(
-        "Payment gateway is not available. Please try again later or contact support."
-      );
-    }
+    // Show the checkout link to the user
+    showCheckoutLink(paymentData.checkoutUrl, paymentData.clientReference);
   } catch (error) {
-    console.error("Payment initialization error:", error);
     showErrorMessage("Failed to initialize payment. Please try again.");
   }
 }
@@ -307,7 +186,7 @@ function showPaymentSection() {
 
   // Populate payment details
   const eventType = getEventType();
-  const eventData = events[eventType];
+  const eventData = window.events[eventType];
 
   if (eventData) {
     document.getElementById("paymentAmount").textContent = eventData.price;
@@ -346,6 +225,67 @@ function showSuccessMessage(message) {
   `;
 }
 
+function showCheckoutLink(checkoutUrl, clientReference) {
+  const paymentSection = document.getElementById("paymentSection");
+  paymentSection.innerHTML = `
+    <div class="checkout-container">
+      <div class="checkout-header">
+        <h3>Complete Your Payment</h3>
+        <p>Reference: <strong>${clientReference}</strong></p>
+      </div>
+      
+      <div class="checkout-iframe-container">
+        <iframe 
+          src="${checkoutUrl}" 
+          frameborder="0" 
+          width="100%" 
+          height="600px"
+          allow="payment"
+          title="Hubtel Payment Gateway">
+        </iframe>
+      </div>
+      
+      <div class="checkout-footer">
+        <p><strong>Payment Methods Available:</strong></p>
+        <ul>
+          <li>Mobile Money (MTN, Vodafone, Airtel)</li>
+          <li>Bank Cards (Visa, Mastercard)</li>
+          <li>Digital Wallets (Hubtel, G-Money, Zeepay)</li>
+          <li>GhQR</li>
+          <li>Cash/Cheque</li>
+        </ul>
+        
+        <div class="checkout-actions">
+          <a href="${checkoutUrl}" target="_blank" class="btn-secondary">
+            🔗 Open in New Tab
+          </a>
+          <button onclick="copyToClipboard('${checkoutUrl}')" class="btn-secondary">
+            📋 Copy Link
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      alert("Payment link copied to clipboard!");
+    })
+    .catch(() => {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      alert("Payment link copied to clipboard!");
+    });
+}
+
 function showErrorMessage(message) {
   const paymentSection = document.getElementById("paymentSection");
   paymentSection.innerHTML = `
@@ -360,9 +300,10 @@ function showErrorMessage(message) {
 
 // Initialize page
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("🚀 Initializing registration page...");
-
-  loadEventData();
+  // Wait a bit to ensure events-config.js has loaded
+  setTimeout(() => {
+    loadEventData();
+  }, 100);
 
   // Add form submit handler
   const form = document.getElementById("registrationForm");
@@ -379,8 +320,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   });
-
-  console.log("✅ Registration page initialized");
 });
 
 // Add smooth scrolling for better UX

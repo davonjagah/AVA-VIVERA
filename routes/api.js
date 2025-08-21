@@ -1,80 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const { getDatabase } = require("../config/database");
+const events = require("../config/events");
 
 // Get all events
 router.get("/events", (req, res) => {
-  const events = [
-    {
-      id: "sme",
-      title: "SMEs Connect: Beyond Profit - Building Legacies",
-      date: "September 8, 2025",
-      time: "9:00 AM",
-      location: "Accra City Hotel",
-      price: "1,500 GHS",
-      description:
-        "Calling All SME Owners & Entrepreneurs! Are you ready to transform your business from surviving to thriving?",
-    },
-    {
-      id: "ceo",
-      title: "2025 CEO Roundtable - Lead the Business, Scale to Legacy",
-      date: "September 9, 2025",
-      time: "9:00 AM - 3:00 PM",
-      location: "Accra City Hotel",
-      price: "2,500 GHS",
-      description:
-        "The greatest shift in your business won't come from more capital or a bigger team — it'll come from you becoming a better leader.",
-    },
-    {
-      id: "wealth",
-      title: "Wealth Creation Strategies Masterclass",
-      date: "September 12, 2025",
-      time: "10:00 AM",
-      location: "Accra City Hotel",
-      price: "1,200 GHS",
-      description:
-        "Ready to transform your life and business? Join us for Wealth Creation Strategies, a premium event where you'll gain actionable insights to scale your enterprise.",
-    },
-  ];
-
-  res.json(events);
+  // Convert events object to array for API response
+  const eventsArray = Object.values(events);
+  res.json(eventsArray);
 });
 
 // Get specific event by ID
 router.get("/events/:id", (req, res) => {
   const eventId = req.params.id;
-  const events = {
-    sme: {
-      id: "sme",
-      title: "SMEs Connect: Beyond Profit - Building Legacies",
-      date: "September 8, 2025",
-      time: "9:00 AM",
-      location: "Accra City Hotel",
-      price: "1,500 GHS",
-      description:
-        "Calling All SME Owners & Entrepreneurs! Are you ready to transform your business from surviving to thriving?",
-    },
-    ceo: {
-      id: "ceo",
-      title: "2025 CEO Roundtable - Lead the Business, Scale to Legacy",
-      date: "September 9, 2025",
-      time: "9:00 AM - 3:00 PM",
-      location: "Accra City Hotel",
-      price: "2,500 GHS",
-      description:
-        "The greatest shift in your business won't come from more capital or a bigger team — it'll come from you becoming a better leader.",
-    },
-    wealth: {
-      id: "wealth",
-      title: "Wealth Creation Strategies Masterclass",
-      date: "September 12, 2025",
-      time: "10:00 AM",
-      location: "Accra City Hotel",
-      price: "1,200 GHS",
-      description:
-        "Ready to transform your life and business? Join us for Wealth Creation Strategies, a premium event where you'll gain actionable insights to scale your enterprise.",
-    },
-  };
 
   const event = events[eventId];
   if (event) {
@@ -90,77 +28,33 @@ router.post("/initiate-payment", async (req, res) => {
     .toString(36)
     .substr(2, 9)}`;
 
-  console.log(`[${requestId}] 🚀 Payment initialization started`);
-
   try {
     const { formData, eventType } = req.body;
 
-    console.log(`[${requestId}] 📋 Request data:`, {
-      eventType: eventType || "undefined",
-      formData: formData
-        ? {
-            ...formData,
-            phone: formData.phone ? "***" + formData.phone.slice(-4) : "N/A",
-          }
-        : "undefined",
-    });
-
     // Validate required data
     if (!formData || !eventType) {
-      console.log(`[${requestId}] ❌ Validation failed: Missing required data`);
       return res.status(400).json({ error: "Missing required data" });
     }
 
-    console.log(`[${requestId}] ✅ Validation passed`);
-
-    // Get event data
-    const events = {
-      sme: {
-        eventName: "SMEs Connect: Beyond Profit - Building Legacies",
-        price: "1,500 GHS",
-      },
-      ceo: {
-        eventName: "2025 CEO Roundtable - Lead the Business, Scale to Legacy",
-        price: "2,500 GHS",
-      },
-      wealth: {
-        eventName: "Wealth Creation Strategies Masterclass",
-        price: "1,200 GHS",
-      },
-    };
-
-    console.log(`[${requestId}] 🎯 Event type: ${eventType}`);
-
+    // Get event data from config
     const eventData = events[eventType];
     if (!eventData) {
-      console.log(`[${requestId}] ❌ Invalid event type: ${eventType}`);
       return res.status(400).json({ error: "Invalid event type" });
     }
-
-    console.log(`[${requestId}] ✅ Event data loaded:`, {
-      eventName: eventData.eventName,
-      price: eventData.price,
-    });
 
     // Generate unique client reference
     const clientReference =
       "event_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
 
-    console.log(
-      `[${requestId}] 🔑 Generated client reference: ${clientReference}`
-    );
-
     // Save registration to MongoDB
     try {
-      console.log(`[${requestId}] 💾 Saving registration to database...`);
-
       const db = await getDatabase();
       const registrations = db.collection("registrations");
 
       const registrationData = {
         clientReference,
         eventType,
-        eventName: eventData.eventName,
+        eventName: eventData.title,
         eventPrice: eventData.price,
         customerInfo: {
           fullName: formData.fullName,
@@ -173,83 +67,112 @@ router.post("/initiate-payment", async (req, res) => {
         updatedAt: new Date(),
       };
 
-      const result = await registrations.insertOne(registrationData);
-      console.log(
-        `[${requestId}] ✅ Registration saved to database with ID: ${result.insertedId}`
-      );
-    } catch (dbError) {
-      console.error(`[${requestId}] ❌ Database save error:`, dbError);
-      console.log(
-        `[${requestId}] ⚠️ Continuing with payment despite database error`
-      );
-      // Continue with payment even if database save fails
-      // The registration will be saved when the callback is received
-    }
+      await registrations.insertOne(registrationData);
+    } catch (dbError) {}
 
     // Extract amount from price
     const amount = parseFloat(eventData.price.replace(/[^\d.]/g, ""));
-    console.log(`[${requestId}] 💰 Amount extracted: GHS ${amount}`);
+
+    // Format phone number to international format
+    let phoneNumber = formData.phone.replace(/\D/g, "");
+    if (phoneNumber.startsWith("0")) {
+      phoneNumber = "233" + phoneNumber.substring(1);
+    } else if (!phoneNumber.startsWith("233")) {
+      phoneNumber = "233" + phoneNumber;
+    }
 
     // Create purchase info with sensitive data handled server-side
     const purchaseInfo = {
-      amount: amount,
+      amount: amount, // Ensure it's a number
       purchaseDescription: `Payment of GHS ${amount.toFixed(2)} for ${
-        eventData.eventName
+        eventData.title
       } - ${formData.fullName}`,
-      customerPhoneNumber: formData.phone.replace(/\D/g, ""),
+      customerPhoneNumber: phoneNumber, // International format
       clientReference: clientReference,
     };
 
-    console.log(`[${requestId}] 📝 Purchase info created:`, {
-      amount: purchaseInfo.amount,
-      description: purchaseInfo.purchaseDescription,
-      clientReference: purchaseInfo.clientReference,
-      phone: "***" + purchaseInfo.customerPhoneNumber.slice(-4),
-    });
-
     // Validate Hubtel credentials
-    if (!process.env.HUBTEL_APP_ID || !process.env.HUBTEL_API_KEY) {
-      console.log(`[${requestId}] ❌ Missing Hubtel credentials`);
+    if (
+      !process.env.HUBTEL_APP_ID ||
+      !process.env.HUBTEL_API_KEY ||
+      !process.env.HUBTEL_MERCHANT_ID
+    ) {
       return res.status(500).json({
         error: "Payment gateway configuration error. Please contact support.",
       });
     }
 
-    // Create config with sensitive credentials from environment
-    const config = {
-      branding: process.env.HUBTEL_BRANDING || "enabled",
+    // Validate merchant account is a number
+    const merchantAccount = parseInt(process.env.HUBTEL_MERCHANT_ID);
+    if (isNaN(merchantAccount)) {
+      return res.status(500).json({
+        error: "Payment gateway configuration error. Please contact support.",
+      });
+    }
+
+    // Create Hubtel Online Checkout API request
+    const hubtelRequest = {
+      //totalAmount: amount,
+      totalAmount: 5,
+      description: `Payment for ${eventData.title} - ${formData.fullName}`,
       callbackUrl:
         process.env.CALLBACK_URL ||
         `${req.protocol}://${req.get("host")}/api/payment-callback`,
-      merchantAccount: parseInt(process.env.HUBTEL_MERCHANT_ID), // Convert to Number
-      basicAuth: Buffer.from(
-        `${process.env.HUBTEL_APP_ID}:${process.env.HUBTEL_API_KEY}`
-      ).toString("base64"), // Base64 encode appId:apiKey
-      integrationType: process.env.HUBTEL_INTEGRATION_TYPE || "External",
+      returnUrl: `${req.protocol}://${req.get(
+        "host"
+      )}/payment-success?ref=${clientReference}`,
+      merchantAccountNumber: process.env.HUBTEL_MERCHANT_ID,
+      cancellationUrl: `${req.protocol}://${req.get(
+        "host"
+      )}/payment-cancelled?ref=${clientReference}`,
+      clientReference: clientReference,
+      payeeName: formData.fullName,
+      payeeMobileNumber: phoneNumber,
+      payeeEmail: formData.email,
     };
 
-    console.log(`[${requestId}] ⚙️ Config created:`, {
-      branding: config.branding,
-      callbackUrl: config.callbackUrl,
-      merchantAccount: config.merchantAccount || "NOT_SET",
-      basicAuth: config.basicAuth
-        ? "***" + config.basicAuth.slice(-4)
-        : "NOT_SET", // Base64 encoded
-      integrationType: config.integrationType,
-    });
+    // Call Hubtel Online Checkout API
+    try {
+      const hubtelResponse = await fetch(
+        "https://payproxyapi.hubtel.com/items/initiate",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Basic ${Buffer.from(
+              `${process.env.HUBTEL_APP_ID}:${process.env.HUBTEL_API_KEY}`
+            ).toString("base64")}`,
+            "Cache-Control": "no-cache",
+          },
+          body: JSON.stringify(hubtelRequest),
+        }
+      );
 
-    // Return the payment configuration to the client
-    console.log(
-      `[${requestId}] ✅ Payment initialization completed successfully`
-    );
-    res.json({
-      success: true,
-      purchaseInfo,
-      config,
-      clientReference,
-    });
+      if (!hubtelResponse.ok) {
+        throw new Error(`Hubtel API error: ${hubtelResponse.status}`);
+      }
+
+      const hubtelData = await hubtelResponse.json();
+
+      if (hubtelData.responseCode !== "0000") {
+        throw new Error(`Hubtel API error: ${hubtelData.status}`);
+      }
+
+      // Return the checkout URL to the client
+      res.json({
+        success: true,
+        checkoutUrl: hubtelData.data.checkoutUrl,
+        checkoutId: hubtelData.data.checkoutId,
+        clientReference: clientReference,
+      });
+    } catch (hubtelError) {
+      res.status(500).json({
+        error: "Failed to initialize payment with Hubtel",
+        details: hubtelError.message,
+      });
+    }
   } catch (error) {
-    console.error(`[${requestId}] ❌ Payment initiation error:`, error);
     res.status(500).json({ error: "Failed to initiate payment" });
   }
 });
@@ -260,33 +183,25 @@ router.post("/payment-callback", async (req, res) => {
     .toString(36)
     .substr(2, 9)}`;
 
-  console.log(`[${callbackId}] 🔔 Payment callback received from Hubtel`);
-
   try {
     const paymentData = req.body;
 
-    // Validate required fields
-    if (!paymentData.clientReference || !paymentData.status) {
-      console.log(
-        `[${callbackId}] ❌ Invalid callback data: Missing required fields`
-      );
+    // Validate required fields for Hubtel Online Checkout API
+    if (
+      !paymentData.Data ||
+      !paymentData.Data.ClientReference ||
+      !paymentData.Data.Status
+    ) {
       return res.status(400).json({
         status: "error",
         message: "Invalid callback data",
       });
     }
 
-    console.log(`[${callbackId}] 📋 Callback data:`, {
-      status: paymentData.status,
-      clientReference: paymentData.clientReference,
-      transactionId: paymentData.transactionId,
-      amount: paymentData.amount,
-      customerPhone: paymentData.customerPhoneNumber
-        ? "***" + paymentData.customerPhoneNumber.slice(-4)
-        : "N/A",
-      paymentMethod: paymentData.paymentMethod,
-      timestamp: new Date().toISOString(),
-    });
+    // Extract data from Hubtel Online Checkout API response
+    const hubtelData = paymentData.Data;
+    const clientReference = hubtelData.ClientReference;
+    const paymentStatus = hubtelData.Status;
 
     // Check if this callback has already been processed
     try {
@@ -294,13 +209,10 @@ router.post("/payment-callback", async (req, res) => {
       const registrations = db.collection("registrations");
 
       const existingRegistration = await registrations.findOne({
-        clientReference: paymentData.clientReference,
+        clientReference: clientReference,
       });
 
       if (!existingRegistration) {
-        console.log(
-          `[${callbackId}] ❌ Registration not found for client reference: ${paymentData.clientReference}`
-        );
         return res.status(404).json({
           status: "error",
           message: "Registration not found",
@@ -312,35 +224,19 @@ router.post("/payment-callback", async (req, res) => {
         existingRegistration.paymentStatus === "completed" ||
         existingRegistration.paymentStatus === "failed"
       ) {
-        console.log(
-          `[${callbackId}] ⚠️ Payment already processed for client reference: ${paymentData.clientReference} (Status: ${existingRegistration.paymentStatus})`
-        );
         return res.status(200).json({
           status: "success",
           message: "Payment already processed",
         });
       }
     } catch (dbError) {
-      console.error(`[${callbackId}] ❌ Database check error:`, dbError);
       return res.status(500).json({
         status: "error",
         message: "Database error",
       });
     }
 
-    // TODO: Verify payment signature/authenticity with Hubtel
-    // This should be implemented based on Hubtel's security requirements
-    // const isValidSignature = verifyHubtelSignature(paymentData, req.headers);
-    // if (!isValidSignature) {
-    //   console.log(`[${callbackId}] ❌ Invalid payment signature`);
-    //   return res.status(401).json({ status: "error", message: "Invalid signature" });
-    // }
-
     if (paymentData.status === "success") {
-      console.log(
-        `[${callbackId}] ✅ Payment successful for client reference: ${paymentData.clientReference}`
-      );
-
       // Update database with payment status
       try {
         const db = await getDatabase();
@@ -362,16 +258,11 @@ router.post("/payment-callback", async (req, res) => {
           }
         );
 
-        console.log(`[${callbackId}] ✅ Database updated with payment success`);
         // TODO: Send confirmation email to customer
       } catch (dbError) {
-        console.error(`[${callbackId}] ❌ Database update error:`, dbError);
+        // Database update failed
       }
     } else {
-      console.log(
-        `[${callbackId}] ❌ Payment failed for client reference: ${paymentData.clientReference}`
-      );
-
       // Update database with failed payment status
       try {
         const db = await getDatabase();
@@ -391,21 +282,17 @@ router.post("/payment-callback", async (req, res) => {
             },
           }
         );
-
-        console.log(`[${callbackId}] ✅ Database updated with payment failure`);
       } catch (dbError) {
-        console.error(`[${callbackId}] ❌ Database update error:`, dbError);
+        // Database update failed
       }
     }
 
     // Respond to Hubtel
-    console.log(`[${callbackId}] 📤 Responding to Hubtel: success`);
     res.status(200).json({
       status: "success",
       message: "Payment callback received successfully",
     });
   } catch (error) {
-    console.error(`[${callbackId}] ❌ Payment callback error:`, error);
     res.status(500).json({
       status: "error",
       message: "Internal server error",
@@ -413,10 +300,8 @@ router.post("/payment-callback", async (req, res) => {
   }
 });
 
-// Secure Hubtel configuration endpoint
 router.get("/hubtel-config", (req, res) => {
   try {
-    // Only return non-sensitive configuration
     const config = {
       appId: process.env.HUBTEL_APP_ID,
       branding: process.env.HUBTEL_BRANDING || "enabled",
@@ -428,7 +313,6 @@ router.get("/hubtel-config", (req, res) => {
 
     res.json(config);
   } catch (error) {
-    console.error("Error getting Hubtel config:", error);
     res.status(500).json({ error: "Failed to load configuration" });
   }
 });
@@ -450,8 +334,6 @@ router.get("/registrations", async (req, res) => {
       registrations: allRegistrations,
     });
   } catch (error) {
-    console.error("Error fetching registrations:", error);
-
     // Return empty array if database is not available
     res.json({
       success: true,
@@ -480,7 +362,6 @@ router.get("/registration/:clientReference", async (req, res) => {
       registration,
     });
   } catch (error) {
-    console.error("Error fetching registration:", error);
     res.status(500).json({ error: "Failed to fetch registration" });
   }
 });
@@ -517,7 +398,6 @@ router.get("/transaction-status/:clientReference", async (req, res) => {
       registration: registration,
     });
   } catch (error) {
-    console.error("Error checking transaction status:", error);
     res.status(500).json({ error: "Failed to check transaction status" });
   }
 });
@@ -534,7 +414,6 @@ router.get("/health", async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Health check failed:", error);
     res.status(503).json({
       status: "unhealthy",
       database: "disconnected",
