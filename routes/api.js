@@ -597,7 +597,10 @@ router.get("/verify/:clientReference", async (req, res) => {
     const { clientReference } = req.params;
 
     // Find registration in database
-    const registration = await Registration.findOne({ clientReference });
+    const db = await getDatabase();
+    const registrations = db.collection("registrations");
+
+    const registration = await registrations.findOne({ clientReference });
 
     if (!registration) {
       return res.status(404).json({

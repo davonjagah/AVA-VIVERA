@@ -1,5 +1,7 @@
 const nodemailer = require("nodemailer");
 const QRCode = require("qrcode");
+const fs = require("fs");
+const path = require("path");
 
 // Generate QR code for registration verification
 async function generateQRCode(registrationId) {
@@ -7,8 +9,40 @@ async function generateQRCode(registrationId) {
     const verificationUrl = `${
       process.env.BASE_URL || "http://localhost:3000"
     }/verify/${registrationId}`;
-    const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl);
-    return qrCodeDataUrl;
+
+    // Generate QR code as PNG buffer
+    const qrCodeBuffer = await QRCode.toBuffer(verificationUrl, {
+      type: "image/png",
+      width: 300,
+      margin: 2,
+      color: {
+        dark: "#2d8659",
+        light: "#ffffff",
+      },
+    });
+
+    // Create filename
+    const filename = `${registrationId}.png`;
+    const filepath = path.join(
+      __dirname,
+      "..",
+      "public",
+      "images",
+      "qr-codes",
+      filename
+    );
+
+    // Ensure directory exists
+    const dir = path.dirname(filepath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Save QR code as image file
+    fs.writeFileSync(filepath, qrCodeBuffer);
+
+    // Return relative URL for email
+    return `/images/qr-codes/${filename}`;
   } catch (error) {
     console.error("QR code generation failed:", error);
     return null;
@@ -85,9 +119,9 @@ const emailTemplates = {
           
           <div style="text-align: center; margin: 30px 0; background: white; padding: 20px; border-radius: 8px;">
             <h4 style="color: #2d8659; margin-top: 0;">Your Entry QR Code</h4>
-            <img src="${
-              data.qrCode
-            }" alt="Registration QR Code" style="max-width: 200px; border: 2px solid #ddd; border-radius: 8px;">
+            <img src="${process.env.BASE_URL || "http://localhost:3000"}${
+      data.qrCode
+    }" alt="Registration QR Code" style="max-width: 200px; border: 2px solid #ddd; border-radius: 8px;">
             <p style="font-size: 12px; color: #666; margin-top: 10px;">Present this QR code at the event entrance</p>
           </div>
           
