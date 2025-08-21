@@ -119,7 +119,7 @@ router.post("/initiate-payment", async (req, res) => {
     // Create Hubtel Online Checkout API request
     const hubtelRequest = {
       //totalAmount: amount,
-      totalAmount: 5,
+      totalAmount: 2,
       description: `Payment for ${eventData.title} - ${formData.fullName}`,
       callbackUrl:
         process.env.CALLBACK_URL ||
@@ -216,27 +216,47 @@ router.post("/payment-callback", async (req, res) => {
     const clientReference = hubtelData.ClientReference;
     const paymentStatus = hubtelData.Status;
 
+    console.log(`[${callbackId}] 📋 Extracted Data:`, {
+      clientReference,
+      paymentStatus,
+      amount: hubtelData.Amount,
+      checkoutId: hubtelData.CheckoutId,
+    });
+
     // Check if this callback has already been processed
+    let existingRegistration;
     try {
       const db = await getDatabase();
       const registrations = db.collection("registrations");
 
-      const existingRegistration = await registrations.findOne({
+      existingRegistration = await registrations.findOne({
         clientReference: clientReference,
       });
 
       if (!existingRegistration) {
+        console.log(
+          `[${callbackId}] ❌ Registration not found for clientReference: ${clientReference}`
+        );
         return res.status(404).json({
           status: "error",
           message: "Registration not found",
         });
       }
 
+      console.log(`[${callbackId}] ✅ Registration found:`, {
+        clientReference: existingRegistration.clientReference,
+        eventName: existingRegistration.eventName,
+        paymentStatus: existingRegistration.paymentStatus,
+      });
+
       // Check if payment status is already final (completed/failed)
       if (
         existingRegistration.paymentStatus === "completed" ||
         existingRegistration.paymentStatus === "failed"
       ) {
+        console.log(
+          `[${callbackId}] ⚠️ Payment already processed with status: ${existingRegistration.paymentStatus}`
+        );
         return res.status(200).json({
           status: "success",
           message: "Payment already processed",
@@ -250,6 +270,7 @@ router.post("/payment-callback", async (req, res) => {
     }
 
     if (paymentStatus === "Success") {
+      console.log(`[${callbackId}] 💰 Processing successful payment`);
       // Update database with payment status
       try {
         const db = await getDatabase();
@@ -272,6 +293,10 @@ router.post("/payment-callback", async (req, res) => {
               updatedAt: new Date(),
             },
           }
+        );
+
+        console.log(
+          `[${callbackId}] ✅ Database updated successfully for payment completion`
         );
 
         // Send confirmation email to customer
@@ -297,9 +322,19 @@ router.post("/payment-callback", async (req, res) => {
           );
         }
       } catch (dbError) {
-        // Database update failed
+        console.log(
+          `[${callbackId}] ❌ Database update failed:`,
+          dbError.message
+        );
+        return res.status(500).json({
+          status: "error",
+          message: "Database update failed",
+        });
       }
     } else {
+      console.log(
+        `[${callbackId}] ❌ Processing failed payment with status: ${paymentStatus}`
+      );
       // Update database with failed payment status
       try {
         const db = await getDatabase();
@@ -323,6 +358,10 @@ router.post("/payment-callback", async (req, res) => {
           }
         );
 
+        console.log(
+          `[${callbackId}] ✅ Database updated successfully for payment failure`
+        );
+
         // Send failure email to customer
         try {
           const emailResult = await sendPaymentFailure(
@@ -344,7 +383,14 @@ router.post("/payment-callback", async (req, res) => {
           );
         }
       } catch (dbError) {
-        // Database update failed
+        console.log(
+          `[${callbackId}] ❌ Database update failed:`,
+          dbError.message
+        );
+        return res.status(500).json({
+          status: "error",
+          message: "Database update failed",
+        });
       }
     }
 
