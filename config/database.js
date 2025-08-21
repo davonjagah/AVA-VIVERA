@@ -5,7 +5,6 @@ let db = null;
 async function connectToDatabase() {
   try {
     if (db) {
-      console.log("✅ Using existing database connection");
       return db;
     }
 
@@ -16,7 +15,6 @@ async function connectToDatabase() {
       throw new Error("MONGODB_URI environment variable is not set");
     }
 
-    console.log("🔌 Connecting to MongoDB Atlas...");
     const client = new MongoClient(uri, {
       // Remove deprecated options
       // useNewUrlParser: true, // Deprecated in MongoDB Driver 4.0+
@@ -39,12 +37,10 @@ async function connectToDatabase() {
     });
 
     await client.connect();
-    console.log("✅ Connected to MongoDB Atlas successfully");
 
     db = client.db(dbName);
     return db;
   } catch (error) {
-    console.error("❌ Database connection error:", error);
     throw error;
   }
 }
@@ -59,8 +55,6 @@ async function getDatabase() {
     await db.admin().ping();
     return db;
   } catch (error) {
-    console.error("❌ Database connection test failed:", error);
-
     // Reset connection and try again
     db = null;
     db = await connectToDatabase();

@@ -26,7 +26,6 @@ app.use("/api", apiRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
   res.status(500).send("Something broke!");
 });
 
@@ -37,6 +36,5 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Value Creation Summit website is live!`);
+  // Server started successfully
 });

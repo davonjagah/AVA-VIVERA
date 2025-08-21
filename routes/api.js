@@ -183,6 +183,13 @@ router.post("/payment-callback", async (req, res) => {
     .toString(36)
     .substr(2, 9)}`;
 
+  // Temporary logging for testing
+  console.log(`[${callbackId}] 🔔 CALLBACK RECEIVED`);
+  console.log(
+    `[${callbackId}] 📦 Request Body:`,
+    JSON.stringify(req.body, null, 2)
+  );
+
   try {
     const paymentData = req.body;
 
@@ -236,21 +243,24 @@ router.post("/payment-callback", async (req, res) => {
       });
     }
 
-    if (paymentData.status === "success") {
+    if (paymentStatus === "Success") {
       // Update database with payment status
       try {
         const db = await getDatabase();
         const registrations = db.collection("registrations");
 
         await registrations.updateOne(
-          { clientReference: paymentData.clientReference },
+          { clientReference: clientReference },
           {
             $set: {
               paymentStatus: "completed",
               paymentData: {
-                transactionId: paymentData.transactionId,
-                amount: paymentData.amount,
-                paymentMethod: paymentData.paymentMethod,
+                checkoutId: hubtelData.CheckoutId,
+                salesInvoiceId: hubtelData.SalesInvoiceId,
+                amount: hubtelData.Amount,
+                customerPhoneNumber: hubtelData.CustomerPhoneNumber,
+                paymentDetails: hubtelData.PaymentDetails,
+                description: hubtelData.Description,
                 completedAt: new Date(),
               },
               updatedAt: new Date(),
@@ -269,13 +279,16 @@ router.post("/payment-callback", async (req, res) => {
         const registrations = db.collection("registrations");
 
         await registrations.updateOne(
-          { clientReference: paymentData.clientReference },
+          { clientReference: clientReference },
           {
             $set: {
               paymentStatus: "failed",
               paymentData: {
-                transactionId: paymentData.transactionId,
-                error: paymentData.error || "Payment failed",
+                checkoutId: hubtelData.CheckoutId,
+                salesInvoiceId: hubtelData.SalesInvoiceId,
+                amount: hubtelData.Amount,
+                customerPhoneNumber: hubtelData.CustomerPhoneNumber,
+                description: hubtelData.Description,
                 failedAt: new Date(),
               },
               updatedAt: new Date(),
@@ -288,6 +301,7 @@ router.post("/payment-callback", async (req, res) => {
     }
 
     // Respond to Hubtel
+    console.log(`[${callbackId}] ✅ CALLBACK PROCESSED SUCCESSFULLY`);
     res.status(200).json({
       status: "success",
       message: "Payment callback received successfully",
@@ -421,6 +435,47 @@ router.get("/health", async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   }
+});
+
+// Test endpoint to simulate Hubtel callback (for testing only)
+router.post("/test-callback", async (req, res) => {
+  const testCallbackData = {
+    ResponseCode: "0000",
+    Status: "Success",
+    Data: {
+      CheckoutId: "test_checkout_123",
+      SalesInvoiceId: "test_invoice_456",
+      ClientReference: req.body.clientReference || "test_ref_789",
+      Status: "Success",
+      Amount: 1500,
+      CustomerPhoneNumber: "233200000000",
+      PaymentDetails: {
+        MobileMoneyNumber: "233200000000",
+        PaymentType: "mobilemoney",
+        Channel: "mtn-gh",
+      },
+      Description: "Test payment completed successfully",
+    },
+  };
+
+  // Forward to the actual callback endpoint
+  const response = await fetch(
+    `${req.protocol}://${req.get("host")}/api/payment-callback`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(testCallbackData),
+    }
+  );
+
+  const result = await response.json();
+  res.json({
+    test: true,
+    callbackResult: result,
+    testData: testCallbackData,
+  });
 });
 
 module.exports = router;
