@@ -19,6 +19,8 @@ This guide will help you configure the Hubtel payment gateway for your Value Cre
 1. In your Hubtel dashboard, find your API credentials
 2. Copy your API Key
 
+**⚠️ IMPORTANT:** The basicAuth field in the Hubtel configuration should be a Base64 encoded string of your credentials in the format `appId:apiKey`. The system automatically handles this encoding.
+
 ## Step 2: Set Up Environment Variables
 
 ### Create .env file

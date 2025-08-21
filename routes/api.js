@@ -221,19 +221,21 @@ router.post("/initiate-payment", async (req, res) => {
       callbackUrl:
         process.env.CALLBACK_URL ||
         `${req.protocol}://${req.get("host")}/api/payment-callback`,
-      merchantAccount: process.env.HUBTEL_APP_ID, // Use APP_ID as merchantAccount
-      basicAuth: process.env.HUBTEL_API_KEY, // Use API_KEY as basicAuth
+      merchantAccount: parseInt(process.env.HUBTEL_MERCHANT_ID), // Convert to Number
+      basicAuth: Buffer.from(
+        `${process.env.HUBTEL_APP_ID}:${process.env.HUBTEL_API_KEY}`
+      ).toString("base64"), // Base64 encode appId:apiKey
+      integrationType: process.env.HUBTEL_INTEGRATION_TYPE || "External",
     };
 
     console.log(`[${requestId}] ⚙️ Config created:`, {
       branding: config.branding,
       callbackUrl: config.callbackUrl,
-      merchantAccount: config.merchantAccount
-        ? "***" + config.merchantAccount.slice(-4)
-        : "NOT_SET",
+      merchantAccount: config.merchantAccount || "NOT_SET",
       basicAuth: config.basicAuth
         ? "***" + config.basicAuth.slice(-4)
-        : "NOT_SET",
+        : "NOT_SET", // Base64 encoded
+      integrationType: config.integrationType,
     });
 
     // Return the payment configuration to the client
