@@ -12,7 +12,7 @@ const events = {
   },
   ceo: {
     id: "ceo",
-    title: "2025 CEO Roundtable - Lead the Business, Scale to Legacy",
+    title: "CEO Roundtable: Lead the Business, Scale to Legacy",
     date: "September 9, 2025",
     time: "9:00 AM - 3:00 PM",
     location: "Accra City Hotel",

@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const { getDatabase } = require("../config/database");
 const events = require("../config/events");
+const {
+  sendPaymentConfirmation,
+  sendPaymentFailure,
+} = require("../utils/emailService");
 
 // Get all events
 router.get("/events", (req, res) => {
@@ -56,6 +60,8 @@ router.post("/initiate-payment", async (req, res) => {
         eventType,
         eventName: eventData.title,
         eventPrice: eventData.price,
+        eventDate: eventData.date || "September 9, 2025",
+        eventLocation: eventData.location || "Accra City Hotel",
         customerInfo: {
           fullName: formData.fullName,
           email: formData.email,
@@ -268,7 +274,28 @@ router.post("/payment-callback", async (req, res) => {
           }
         );
 
-        // TODO: Send confirmation email to customer
+        // Send confirmation email to customer
+        try {
+          const emailResult = await sendPaymentConfirmation(
+            existingRegistration,
+            hubtelData
+          );
+          if (emailResult.success) {
+            console.log(
+              `[${callbackId}] ✅ Confirmation email sent successfully`
+            );
+          } else {
+            console.log(
+              `[${callbackId}] ⚠️ Email sending failed:`,
+              emailResult.error
+            );
+          }
+        } catch (emailError) {
+          console.log(
+            `[${callbackId}] ⚠️ Email sending error:`,
+            emailError.message
+          );
+        }
       } catch (dbError) {
         // Database update failed
       }
@@ -295,6 +322,27 @@ router.post("/payment-callback", async (req, res) => {
             },
           }
         );
+
+        // Send failure email to customer
+        try {
+          const emailResult = await sendPaymentFailure(
+            existingRegistration,
+            hubtelData
+          );
+          if (emailResult.success) {
+            console.log(`[${callbackId}] ✅ Failure email sent successfully`);
+          } else {
+            console.log(
+              `[${callbackId}] ⚠️ Email sending failed:`,
+              emailResult.error
+            );
+          }
+        } catch (emailError) {
+          console.log(
+            `[${callbackId}] ⚠️ Email sending error:`,
+            emailError.message
+          );
+        }
       } catch (dbError) {
         // Database update failed
       }
@@ -476,6 +524,119 @@ router.post("/test-callback", async (req, res) => {
     callbackResult: result,
     testData: testCallbackData,
   });
+});
+
+// Test email endpoint (for testing email configuration)
+router.post("/test-email", async (req, res) => {
+  try {
+    const { email, type = "success", clientReference } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: "Email address is required",
+        example: {
+          email: "test@example.com",
+          type: "success",
+          clientReference: "test123",
+        },
+      });
+    }
+
+    // Create test registration data
+    const testRegistration = {
+      customerInfo: {
+        fullName: "Test User",
+        email: email,
+      },
+      eventName: "CEO Roundtable: Lead the Business, Scale to Legacy",
+      clientReference: clientReference || "test_email_" + Date.now(),
+      eventDate: "September 9, 2025",
+      eventLocation: "Accra City Hotel",
+    };
+
+    // Create test payment data
+    const testPaymentData = {
+      amount: 1500,
+      paymentDetails: {
+        PaymentType: "mobilemoney",
+      },
+    };
+
+    let emailResult;
+    if (type === "success") {
+      emailResult = await sendPaymentConfirmation(
+        testRegistration,
+        testPaymentData
+      );
+    } else {
+      emailResult = await sendPaymentFailure(testRegistration, testPaymentData);
+    }
+
+    res.json({
+      success: true,
+      message: `Test ${type} email sent successfully`,
+      emailResult: emailResult,
+      testData: {
+        type: type,
+        registration: testRegistration,
+        payment: testPaymentData,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: "Email test failed",
+    });
+  }
+});
+
+// Registration verification endpoint
+router.get("/verify/:clientReference", async (req, res) => {
+  try {
+    const { clientReference } = req.params;
+
+    // Find registration in database
+    const registration = await Registration.findOne({ clientReference });
+
+    if (!registration) {
+      return res.status(404).json({
+        success: false,
+        message: "Registration not found",
+        clientReference: clientReference,
+      });
+    }
+
+    // Check if payment was successful
+    if (registration.paymentStatus !== "completed") {
+      return res.status(400).json({
+        success: false,
+        message: "Payment not completed",
+        clientReference: clientReference,
+        paymentStatus: registration.paymentStatus,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Registration verified successfully",
+      registration: {
+        fullName: registration.customerInfo.fullName,
+        email: registration.customerInfo.email,
+        eventName: registration.eventName,
+        clientReference: registration.clientReference,
+        amount: registration.amount,
+        paymentStatus: registration.paymentStatus,
+        registrationDate: registration.createdAt,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: "Verification failed",
+    });
+  }
 });
 
 module.exports = router;

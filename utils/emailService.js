@@ -1,0 +1,257 @@
+const nodemailer = require("nodemailer");
+const QRCode = require("qrcode");
+
+// Generate QR code for registration verification
+async function generateQRCode(registrationId) {
+  try {
+    const verificationUrl = `${
+      process.env.BASE_URL || "http://localhost:3000"
+    }/verify/${registrationId}`;
+    const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl);
+    return qrCodeDataUrl;
+  } catch (error) {
+    console.error("QR code generation failed:", error);
+    return null;
+  }
+}
+
+// Create transporter with your SMTP settings
+const transporter = nodemailer.createTransport({
+  host: "mail.accessviewafrica.com",
+  port: 465,
+  secure: true, // Use SSL/TLS
+  auth: {
+    user: process.env.EMAIL_USER || "valuecreationsummit@accessviewafrica.com",
+    pass: process.env.EMAIL_PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false, // For self-signed certificates if needed
+  },
+});
+
+// Email templates
+const emailTemplates = {
+  paymentSuccess: (data) => ({
+    subject: `Registration Confirmation - ${data.eventName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #2d8659, #44b678); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">Registration Confirmation</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px;">Value Creation Summit 2025</p>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #2d8659; margin-top: 0;">Registration Confirmed!</h2>
+          
+          <p>Dear <strong>${data.customerName}</strong>,</p>
+          
+          <p>Thank you for registering for the <strong>${
+            data.eventName
+          }</strong>, part of the Value Creation Summit 2025. Your payment has been successfully processed and your registration is confirmed.</p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #44b678;">
+            <h3 style="color: #2d8659; margin-top: 0;">Event Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Event:</td>
+                <td style="padding: 8px 0;">${data.eventName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Date:</td>
+                <td style="padding: 8px 0;">${
+                  data.eventDate || "September 9, 2025"
+                }</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Location:</td>
+                <td style="padding: 8px 0;">${
+                  data.eventLocation || "Accra City Hotel"
+                }</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Transaction ID:</td>
+                <td style="padding: 8px 0; font-family: monospace;">${
+                  data.clientReference
+                }</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Amount Paid:</td>
+                <td style="padding: 8px 0; font-weight: bold; color: #2d8659;">GHS ${
+                  data.amount
+                }</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0; background: white; padding: 20px; border-radius: 8px;">
+            <h4 style="color: #2d8659; margin-top: 0;">Your Entry QR Code</h4>
+            <img src="${
+              data.qrCode
+            }" alt="Registration QR Code" style="max-width: 200px; border: 2px solid #ddd; border-radius: 8px;">
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">Present this QR code at the event entrance</p>
+          </div>
+          
+          <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="color: #2d8659; margin-top: 0;">Important Information</h4>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>Please arrive 30 minutes before the event starts</li>
+              <li>Bring a valid ID for verification</li>
+              <li>Keep this email and QR code for your records</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #666; font-size: 14px;">
+              For assistance, kindly reach us at <a href="mailto:nakunyili@accessviewafrica.com" style="color: #44b678;">nakunyili@accessviewafrica.com</a> or +233 240 509 803.
+            </p>
+            <p style="color: #666; font-size: 12px;">
+              We look forward to welcoming you to the event!<br><br>
+              Best regards,<br>
+              Access View Africa Team
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  }),
+
+  paymentFailed: (data) => ({
+    subject: `Payment Failed - ${data.eventName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #e74c3c; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">Payment Failed</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px;">Value Creation Summit 2025</p>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #e74c3c; margin-top: 0;">Payment Unsuccessful</h2>
+          
+          <p>Dear <strong>${data.customerName}</strong>,</p>
+          
+          <p>We're sorry, but your payment for the <strong>${data.eventName}</strong> was not successful.</p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #e74c3c;">
+            <h3 style="color: #e74c3c; margin-top: 0;">Transaction Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Event:</td>
+                <td style="padding: 8px 0;">${data.eventName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Transaction ID:</td>
+                <td style="padding: 8px 0; font-family: monospace;">${data.clientReference}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Amount:</td>
+                <td style="padding: 8px 0;">GHS ${data.amount}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Date:</td>
+                <td style="padding: 8px 0;">${data.paymentDate}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div style="background: #ffeaea; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="color: #e74c3c; margin-top: 0;">What to do next?</h4>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>Please try making the payment again</li>
+              <li>Ensure you have sufficient funds in your account</li>
+              <li>Contact us if you continue to experience issues</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #666; font-size: 14px;">
+              For assistance, kindly reach us at <a href="mailto:nakunyili@accessviewafrica.com" style="color: #44b678;">nakunyili@accessviewafrica.com</a> or +233 240 509 803.
+            </p>
+            <p style="color: #666; font-size: 12px;">
+              Best regards,<br>
+              Access View Africa Team
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  }),
+};
+
+// Send email function
+async function sendEmail(to, template, data) {
+  try {
+    // Verify transporter configuration
+    if (!process.env.EMAIL_PASSWORD) {
+      throw new Error("EMAIL_PASSWORD environment variable is not set");
+    }
+
+    const emailContent = emailTemplates[template](data);
+
+    const mailOptions = {
+      from: `"Value Creation Summit" <${
+        process.env.EMAIL_USER || "valuecreationsummit@accessviewafrica.com"
+      }>`,
+      to: to,
+      subject: emailContent.subject,
+      html: emailContent.html,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error("Email sending failed:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Send payment confirmation email
+async function sendPaymentConfirmation(registrationData, paymentData) {
+  // Generate QR code for registration verification
+  const qrCode = await generateQRCode(registrationData.clientReference);
+
+  const emailData = {
+    customerName: registrationData.customerInfo.fullName,
+    eventName: registrationData.eventName,
+    clientReference: registrationData.clientReference,
+    amount: paymentData.amount,
+    eventDate: registrationData.eventDate || "September 9, 2025",
+    eventLocation: registrationData.eventLocation || "Accra City Hotel",
+    qrCode: qrCode,
+  };
+
+  return await sendEmail(
+    registrationData.customerInfo.email,
+    "paymentSuccess",
+    emailData
+  );
+}
+
+// Send payment failure email
+async function sendPaymentFailure(registrationData, paymentData) {
+  const emailData = {
+    customerName: registrationData.customerInfo.fullName,
+    eventName: registrationData.eventName,
+    clientReference: registrationData.clientReference,
+    amount: paymentData.amount,
+    paymentDate: new Date().toLocaleDateString("en-GH", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
+
+  return await sendEmail(
+    registrationData.customerInfo.email,
+    "paymentFailed",
+    emailData
+  );
+}
+
+module.exports = {
+  sendEmail,
+  sendPaymentConfirmation,
+  sendPaymentFailure,
+  generateQRCode,
+};

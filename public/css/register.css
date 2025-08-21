@@ -335,6 +335,24 @@
     margin-bottom: 20px;
 }
 
+.transaction-details {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.transaction-details p {
+    margin: 8px 0;
+    color: #d0d0d0;
+    font-size: 1rem;
+}
+
+.transaction-details strong {
+    color: #44b678;
+}
+
 /* Hubtel iframe container styling */
 #hubtel-checkout-iframe {
     min-height: 600px;

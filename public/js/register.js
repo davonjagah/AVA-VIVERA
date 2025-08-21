@@ -169,6 +169,8 @@ async function initializeHubtelPayment(
       throw new Error(paymentData.error || "Payment initialization failed");
     }
 
+    console.log("Payment data received:", paymentData);
+
     // Show the checkout link to the user
     showCheckoutLink(paymentData.checkoutUrl, paymentData.clientReference);
   } catch (error) {
@@ -213,25 +215,36 @@ function hideLoadingMessage() {
   iframeContainer.innerHTML = ""; // Clear loading message
 }
 
-function showSuccessMessage(message) {
+function showSuccessMessage(message, clientReference) {
   const paymentSection = document.getElementById("paymentSection");
   paymentSection.innerHTML = `
     <div class="success-message">
       <div class="success-icon">✓</div>
       <h3>Payment Successful!</h3>
       <p>${message}</p>
+      <div class="transaction-details">
+        <p><strong>Transaction ID:</strong> ${clientReference}</p>
+        <p><strong>Status:</strong> Completed</p>
+      </div>
       <button onclick="window.location.href='/'" class="btn-primary">Return to Home</button>
     </div>
   `;
 }
 
 function showCheckoutLink(checkoutUrl, clientReference) {
+  console.log("showCheckoutLink called with:", {
+    checkoutUrl,
+    clientReference,
+  });
+
   const paymentSection = document.getElementById("paymentSection");
   paymentSection.innerHTML = `
     <div class="checkout-container">
       <div class="checkout-header">
         <h3>Complete Your Payment</h3>
-        <p>Reference: <strong>${clientReference}</strong></p>
+        <p>Transaction ID: <strong>${
+          clientReference || "Loading..."
+        }</strong></p>
       </div>
       
       <div class="checkout-iframe-container">

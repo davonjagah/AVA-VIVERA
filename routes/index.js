@@ -17,4 +17,9 @@ router.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "views", "admin.html"));
 });
 
+// Verification page route
+router.get("/verify/:clientReference", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "views", "verify.html"));
+});
+
 module.exports = router;

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Verification - Value Creation Summit 2025</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .verification-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d8659, #44b678);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .status {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .status.success {
+            color: #2d8659;
+        }
+
+        .status.error {
+            color: #e74c3c;
+        }
+
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .registration-details {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .detail-value {
+            color: #212529;
+            text-align: right;
+        }
+
+        .qr-code {
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .qr-code img {
+            max-width: 150px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #2d8659, #44b678);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2d8659;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #ffeaea;
+            color: #e74c3c;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="header">
+            <h1>Registration Verification</h1>
+            <p>Value Creation Summit 2025</p>
+        </div>
+        
+        <div class="content">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Verifying registration...</p>
+            </div>
+
+            <div id="success" class="status success" style="display: none;">
+                <div class="status-icon">✅</div>
+                <h2>Registration Verified!</h2>
+                <p>This registration is valid and payment has been completed.</p>
+            </div>
+
+            <div id="error" class="status error" style="display: none;">
+                <div class="status-icon">❌</div>
+                <h2>Verification Failed</h2>
+                <p id="error-message">Unable to verify registration.</p>
+            </div>
+
+            <div id="registration-details" class="registration-details" style="display: none;">
+                <h3 style="margin-bottom: 20px; color: #2d8659;">Registration Details</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Full Name:</span>
+                    <span class="detail-value" id="full-name">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value" id="email">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Event:</span>
+                    <span class="detail-value" id="event-name">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Transaction ID:</span>
+                    <span class="detail-value" id="client-reference">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Amount Paid:</span>
+                    <span class="detail-value" id="amount">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Registration Date:</span>
+                    <span class="detail-value" id="registration-date">-</span>
+                </div>
+            </div>
+
+            <div class="actions">
+                <a href="/" class="btn">Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get client reference from URL
+        const pathSegments = window.location.pathname.split('/');
+        const clientReference = pathSegments[pathSegments.length - 1];
+
+        // Verify registration
+        async function verifyRegistration() {
+            try {
+                const response = await fetch(`/api/verify/${clientReference}`);
+                const data = await response.json();
+
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+
+                if (data.success) {
+                    // Show success
+                    document.getElementById('success').style.display = 'block';
+                    document.getElementById('registration-details').style.display = 'block';
+
+                    // Populate details
+                    document.getElementById('full-name').textContent = data.registration.fullName;
+                    document.getElementById('email').textContent = data.registration.email;
+                    document.getElementById('event-name').textContent = data.registration.eventName;
+                    document.getElementById('client-reference').textContent = data.registration.clientReference;
+                    document.getElementById('amount').textContent = `GHS ${data.registration.amount}`;
+                    
+                    const registrationDate = new Date(data.registration.registrationDate);
+                    document.getElementById('registration-date').textContent = registrationDate.toLocaleDateString('en-GH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } else {
+                    // Show error
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('error-message').textContent = data.message || 'Verification failed';
+                }
+            } catch (error) {
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                
+                // Show error
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error-message').textContent = 'Network error. Please try again.';
+            }
+        }
+
+        // Start verification when page loads
+        verifyRegistration();
+    </script>
+</body>
+</html>
