@@ -87,7 +87,7 @@ value-creation-summit/
 ## Contact
 
 For more information about the Value Creation Summit:
-- Email: nakunyili@accessviewafrica.com
+- Email: valuecreationsummit@accessviewafrica.com
 - Phone: 0240509803
 
 ## License
