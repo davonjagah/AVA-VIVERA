@@ -66,6 +66,19 @@ function loadEventData() {
   if (eventDetails) eventDetails.textContent = eventData.details;
   if (eventField) eventField.value = eventData.eventName;
   if (priceField) priceField.value = eventData.price;
+
+  // Show AGI membership checkbox only for SME events
+  const agiMembershipGroup = document.getElementById("agiMembershipGroup");
+  if (agiMembershipGroup) {
+    if (eventType === "sme") {
+      agiMembershipGroup.style.display = "block";
+    } else {
+      agiMembershipGroup.style.display = "none";
+      // Uncheck the checkbox when hidden
+      const agiCheckbox = document.getElementById("agiMember");
+      if (agiCheckbox) agiCheckbox.checked = false;
+    }
+  }
 }
 
 // Handle form submission

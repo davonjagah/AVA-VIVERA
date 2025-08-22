@@ -524,4 +524,41 @@
 
 .checkout-link-container .payment-info li {
     margin-bottom: 5px;
-} 
+}
+
+/* AGI Membership Checkbox Styles */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.checkbox-group:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(68, 182, 120, 0.3);
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #44b678;
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    margin: 0;
+    font-size: 14px;
+    color: #d0d0d0;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.checkbox-group input[type="checkbox"]:checked + label {
+    color: #44b678;
+    font-weight: 600;
+}

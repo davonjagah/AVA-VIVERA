@@ -67,6 +67,7 @@ router.post("/initiate-payment", async (req, res) => {
           email: formData.email,
           phone: formData.phone,
           organization: formData.organization,
+          agiMember: formData.agiMember === "on" || formData.agiMember === true,
         },
         paymentStatus: "pending",
         createdAt: new Date(),

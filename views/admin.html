@@ -17,6 +17,47 @@
             align-items: center;
             margin-bottom: 30px;
         }
+        
+        .admin-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-controls select {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .filter-controls select:focus {
+            outline: none;
+            border-color: #44b678;
+        }
+        
+        .filter-controls select option {
+            background: #2d8659;
+            color: #fff;
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .export-btn:hover {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
         .refresh-btn {
             background: linear-gradient(135deg, #1e5631, #2d8659);
             color: #fff;
@@ -127,6 +168,17 @@
                 text-align: center;
             }
             
+            .admin-controls {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            .filter-controls select {
+                width: 100%;
+                max-width: 200px;
+            }
+            
             .admin-header h1 {
                 font-size: 1.5rem;
                 margin: 0;
@@ -161,7 +213,18 @@
     <div class="admin-container">
         <div class="admin-header">
             <h1>Registration Admin Panel</h1>
-            <button class="refresh-btn" onclick="loadRegistrations()">🔄 Refresh</button>
+            <div class="admin-controls">
+                <div class="filter-controls">
+                    <select id="eventFilter" onchange="filterRegistrations()">
+                        <option value="">All Events</option>
+                        <option value="sme">SMEs Connect</option>
+                        <option value="ceo">CEO Roundtable</option>
+                        <option value="wealth">Wealth Creation</option>
+                    </select>
+                </div>
+                <button class="export-btn" onclick="exportToCSV()">📊 Export CSV</button>
+                <button class="refresh-btn" onclick="loadRegistrations()">🔄 Refresh</button>
+            </div>
         </div>
         
         <div class="table-container">
@@ -178,7 +241,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    displayRegistrations(data.registrations);
+                    allRegistrations = data.registrations;
+                    displayRegistrations(allRegistrations);
                 } else {
                     document.getElementById('registrations-container').innerHTML = 
                         '<p>Error loading registrations</p>';
@@ -208,6 +272,7 @@
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Organization</th>
+                            <th>AGI Member</th>
                             <th>Price</th>
                             <th>Status</th>
                             <th>Created</th>
@@ -222,10 +287,11 @@
                                 <td>${reg.customerInfo.email}</td>
                                 <td>${reg.customerInfo.phone}</td>
                                 <td>${reg.customerInfo.organization}</td>
+                                <td>${reg.customerInfo.agiMember ? '✅ Yes' : '❌ No'}</td>
                                 <td>${reg.eventPrice}</td>
                                 <td><span class="status-${reg.paymentStatus}">${reg.paymentStatus.toUpperCase()}</span></td>
                                 <td>${new Date(reg.createdAt).toLocaleDateString()}</td>
-                                <td>${reg.paymentData?.transactionId || 'N/A'}</td>
+                                <td class="client-ref">${reg.clientReference || 'N/A'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -242,16 +308,84 @@
                             <p><span class="label">Email:</span> ${reg.customerInfo.email}</p>
                             <p><span class="label">Phone:</span> ${reg.customerInfo.phone}</p>
                             <p><span class="label">Organization:</span> ${reg.customerInfo.organization}</p>
+                            <p><span class="label">AGI Member:</span> ${reg.customerInfo.agiMember ? '✅ Yes' : '❌ No'}</p>
                             <p><span class="label">Price:</span> ${reg.eventPrice}</p>
                             <p><span class="label">Status:</span> <span class="status-${reg.paymentStatus}">${reg.paymentStatus.toUpperCase()}</span></p>
                             <p><span class="label">Created:</span> ${new Date(reg.createdAt).toLocaleDateString()}</p>
-                            ${reg.paymentData?.transactionId ? `<p><span class="label">Transaction ID:</span> ${reg.paymentData.transactionId}</p>` : ''}
+                            <p><span class="label">Transaction ID:</span> <span class="client-ref">${reg.clientReference || 'N/A'}</span></p>
                         </div>
                     `).join('')}
                 </div>
             `;
 
             container.innerHTML = tableHTML + mobileHTML;
+        }
+
+        // Global variable to store all registrations
+        let allRegistrations = [];
+
+        // Filter registrations by event type
+        function filterRegistrations() {
+            const eventFilter = document.getElementById('eventFilter').value;
+            const filteredRegistrations = eventFilter 
+                ? allRegistrations.filter(reg => reg.eventType === eventFilter)
+                : allRegistrations;
+            
+            displayRegistrations(filteredRegistrations);
+        }
+
+        // Export registrations to CSV
+        function exportToCSV() {
+            const eventFilter = document.getElementById('eventFilter').value;
+            const registrationsToExport = eventFilter 
+                ? allRegistrations.filter(reg => reg.eventType === eventFilter)
+                : allRegistrations;
+            
+            if (registrationsToExport.length === 0) {
+                alert('No registrations to export');
+                return;
+            }
+
+            // Create CSV content
+            const headers = [
+                'Name',
+                'Event',
+                'Email',
+                'Phone',
+                'Organization',
+                'AGI Member',
+                'Price',
+                'Status',
+                'Created',
+                'Transaction ID'
+            ];
+
+            const csvContent = [
+                headers.join(','),
+                ...registrationsToExport.map(reg => [
+                    `"${reg.customerInfo.fullName}"`,
+                    `"${reg.eventName}"`,
+                    `"${reg.customerInfo.email}"`,
+                    `"${reg.customerInfo.phone}"`,
+                    `"${reg.customerInfo.organization}"`,
+                    reg.customerInfo.agiMember ? 'Yes' : 'No',
+                    `"${reg.eventPrice}"`,
+                    reg.paymentStatus.toUpperCase(),
+                    `"${new Date(reg.createdAt).toLocaleDateString()}"`,
+                    `"${reg.clientReference}"`
+                ].join(','))
+            ].join('\n');
+
+            // Create and download CSV file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `registrations_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // Load registrations on page load
