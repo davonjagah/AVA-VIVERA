@@ -474,9 +474,99 @@ router.get("/registration/:clientReference", async (req, res) => {
   }
 });
 
+// Offline registration endpoint
+router.post("/offline-registration", async (req, res) => {
+  try {
+    const { formData, eventType } = req.body;
+
+    // Validate required data
+    if (!formData || !eventType) {
+      return res.status(400).json({ error: "Missing required data" });
+    }
+
+    // Get event data from config
+    const eventData = events[eventType];
+    if (!eventData) {
+      return res.status(400).json({ error: "Invalid event type" });
+    }
+
+    // Generate unique client reference with "Offline" prefix
+    const clientReference =
+      "Offline_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+
+    // Extract amount from price
+    const amount = parseFloat(eventData.price.replace(/[^\d.]/g, ""));
+
+    // Save registration to MongoDB
+    try {
+      const db = await getDatabase();
+      const registrations = db.collection("registrations");
+
+      const registrationData = {
+        clientReference,
+        eventType,
+        eventName: eventData.title,
+        eventPrice: eventData.price,
+        eventDate: eventData.date || "September 9, 2025",
+        eventLocation: eventData.location || "Accra City Hotel",
+        customerInfo: {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          organization: formData.organization,
+          agiMember: formData.agiMember || false,
+        },
+        paymentStatus: "completed", // Offline registrations are marked as completed
+        paymentData: {
+          amount: amount,
+          description: `Offline registration for ${eventData.title} - ${formData.fullName}`,
+          completedAt: new Date(),
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await registrations.insertOne(registrationData);
+
+      // Send confirmation email
+      try {
+        const emailResult = await sendPaymentConfirmation(registrationData, {
+          Amount: amount,
+        });
+        if (emailResult.success) {
+          console.log(
+            `✅ Offline registration email sent successfully to ${formData.email}`
+          );
+        } else {
+          console.log(
+            `⚠️ Email sending failed for offline registration: ${emailResult.error}`
+          );
+        }
+      } catch (emailError) {
+        console.log(
+          `⚠️ Email sending error for offline registration: ${emailError.message}`
+        );
+      }
+
+      res.json({
+        success: true,
+        message: "Offline registration created successfully",
+        clientReference: clientReference,
+      });
+    } catch (dbError) {
+      console.error("Database error for offline registration:", dbError);
+      res.status(500).json({ error: "Database error" });
+    }
+  } catch (error) {
+    console.error("Offline registration error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Transaction status check endpoint
 router.get("/transaction-status/:clientReference", async (req, res) => {
   const { clientReference } = req.params;
+  const { hubtelTransactionId, networkTransactionId } = req.query;
 
   try {
     const db = await getDatabase();
@@ -488,25 +578,114 @@ router.get("/transaction-status/:clientReference", async (req, res) => {
       return res.status(404).json({ error: "Registration not found" });
     }
 
-    // TODO: Verify with Hubtel API for real-time status
-    // This would make an API call to Hubtel to get the latest transaction status
-    // const hubtelStatus = await verifyWithHubtelAPI(clientReference);
-    // if (hubtelStatus && hubtelStatus !== registration.paymentStatus) {
-    //   // Update local database with latest status from Hubtel
-    //   await registrations.updateOne(
-    //     { clientReference },
-    //     { $set: { paymentStatus: hubtelStatus, updatedAt: new Date() } }
-    //   );
-    //   registration.paymentStatus = hubtelStatus;
-    // }
+    // Import Hubtel service
+    const hubtelService = require("../utils/hubtelService");
 
-    res.json({
-      status: registration.paymentStatus,
-      clientReference: clientReference,
-      registration: registration,
-    });
+    // Check if Hubtel service is configured
+    if (!hubtelService.isConfigured()) {
+      console.warn(
+        `⚠️ Hubtel service not configured, returning local status for ${clientReference}`
+      );
+      return res.json({
+        status: registration.paymentStatus,
+        clientReference: clientReference,
+        registration: registration,
+        source: "local",
+        hubtelConfigured: false,
+      });
+    }
+
+    // Verify with Hubtel API for real-time status
+    console.log(
+      `🔍 Checking Hubtel status for transaction: ${clientReference}`
+    );
+    const hubtelResult = await hubtelService.checkTransactionStatus(
+      clientReference,
+      hubtelTransactionId,
+      networkTransactionId
+    );
+
+    if (hubtelResult.success) {
+      const hubtelStatus = hubtelService.mapHubtelStatus(
+        hubtelResult.data.status
+      );
+      const localStatus = registration.paymentStatus;
+
+      console.log(`📊 Status comparison for ${clientReference}:`, {
+        local: localStatus,
+        hubtel: hubtelStatus,
+        hubtelRaw: hubtelResult.data.status,
+      });
+
+      // Update local database if Hubtel status differs from local status
+      if (hubtelStatus !== localStatus) {
+        console.log(
+          `🔄 Updating local status for ${clientReference}: ${localStatus} → ${hubtelStatus}`
+        );
+
+        await registrations.updateOne(
+          { clientReference },
+          {
+            $set: {
+              paymentStatus: hubtelStatus,
+              updatedAt: new Date(),
+              lastHubtelCheck: new Date(),
+              hubtelData: hubtelResult.data,
+            },
+          }
+        );
+
+        // Update the registration object for response
+        registration.paymentStatus = hubtelStatus;
+        registration.lastHubtelCheck = new Date();
+        registration.hubtelData = hubtelResult.data;
+      } else {
+        // Just update the last check time
+        await registrations.updateOne(
+          { clientReference },
+          {
+            $set: {
+              lastHubtelCheck: new Date(),
+              hubtelData: hubtelResult.data,
+            },
+          }
+        );
+      }
+
+      res.json({
+        status: hubtelStatus,
+        clientReference: clientReference,
+        registration: registration,
+        source: "hubtel",
+        hubtelData: hubtelResult.data,
+        hubtelConfigured: true,
+      });
+    } else {
+      console.error(
+        `❌ Hubtel status check failed for ${clientReference}:`,
+        hubtelResult.error
+      );
+
+      // Return local status if Hubtel check fails
+      res.json({
+        status: registration.paymentStatus,
+        clientReference: clientReference,
+        registration: registration,
+        source: "local",
+        hubtelConfigured: true,
+        hubtelError: hubtelResult.error,
+        hubtelResponseCode: hubtelResult.responseCode,
+      });
+    }
   } catch (error) {
-    res.status(500).json({ error: "Failed to check transaction status" });
+    console.error(
+      `❌ Transaction status check error for ${clientReference}:`,
+      error
+    );
+    res.status(500).json({
+      error: "Failed to check transaction status",
+      details: error.message,
+    });
   }
 });
 
@@ -570,6 +749,78 @@ router.post("/test-callback", async (req, res) => {
     callbackResult: result,
     testData: testCallbackData,
   });
+});
+
+// Get pending registrations for admin
+router.get("/pending-registrations", async (req, res) => {
+  try {
+    const db = await getDatabase();
+    const registrations = db.collection("registrations");
+
+    const pendingRegistrations = await registrations
+      .find({ paymentStatus: "pending" })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({
+      success: true,
+      count: pendingRegistrations.length,
+      registrations: pendingRegistrations,
+    });
+  } catch (error) {
+    console.error("Error fetching pending registrations:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch pending registrations",
+    });
+  }
+});
+
+// Test Hubtel transaction status check endpoint
+router.post("/test-hubtel-status", async (req, res) => {
+  try {
+    const { clientReference, hubtelTransactionId, networkTransactionId } =
+      req.body;
+
+    if (!clientReference) {
+      return res.status(400).json({
+        success: false,
+        error: "clientReference is required",
+      });
+    }
+
+    const hubtelService = require("../utils/hubtelService");
+
+    if (!hubtelService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Hubtel service not configured. Please set HUBTEL_APP_ID, HUBTEL_API_KEY, and HUBTEL_MERCHANT_ID environment variables.",
+      });
+    }
+
+    console.log(`🧪 Testing Hubtel status check for: ${clientReference}`);
+
+    const result = await hubtelService.checkTransactionStatus(
+      clientReference,
+      hubtelTransactionId,
+      networkTransactionId
+    );
+
+    res.json({
+      success: true,
+      test: true,
+      clientReference,
+      hubtelResult: result,
+      configured: hubtelService.isConfigured(),
+    });
+  } catch (error) {
+    console.error("Test Hubtel status check error:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // Test email endpoint (for testing email configuration)

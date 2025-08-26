@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Registration - Admin</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .offline-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .offline-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+        
+        .offline-form {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #44b678;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba(68, 182, 120, 0.1);
+        }
+        
+        .form-group select option {
+            background: #2d8659;
+            color: #fff;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .checkbox-group:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(68, 182, 120, 0.3);
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #44b678;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            font-size: 14px;
+            color: #d0d0d0;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+        
+        .checkbox-group input[type="checkbox"]:checked + label {
+            color: #44b678;
+            font-weight: 600;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #2d8659, #44b678);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(68, 182, 120, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 15px 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .success-message {
+            background: rgba(68, 182, 120, 0.2);
+            border: 1px solid #44b678;
+            color: #44b678;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #44b678;
+            margin-top: 20px;
+        }
+        
+        .agi-section {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .offline-container {
+                padding: 10px;
+            }
+            
+            .offline-form {
+                padding: 20px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-logo-container">
+            <img src="/images/logo.png" alt="Event Logo 1" class="header-logo">
+            <img src="/images/vivera.png" alt="Event Logo 2" class="header-logo">
+        </div>
+    </header>
+
+    <div class="offline-container">
+        <div class="offline-header">
+            <h1>Offline Registration</h1>
+            <p>Add manual registrations and send completion emails</p>
+        </div>
+        
+        <div class="offline-form">
+            <form id="offlineRegistrationForm">
+                <div class="form-group">
+                    <label for="fullName">Full Name *</label>
+                    <input type="text" id="fullName" name="fullName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="organization">Organization/Company *</label>
+                    <input type="text" id="organization" name="organization" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventType">Event *</label>
+                    <select id="eventType" name="eventType" required onchange="toggleAgiSection()">
+                        <option value="">Select an event</option>
+                        <option value="sme">SMEs Connect: Beyond Profit - Building Legacies</option>
+                        <option value="ceo">CEO Roundtable: Lead the Business, Scale to Legacy</option>
+                        <option value="wealth">Wealth Creation Strategies Masterclass</option>
+                    </select>
+                </div>
+
+                <div class="form-group agi-section" id="agiSection">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="agiMember" name="agiMember">
+                        <label for="agiMember">I am a member of AGI (Association of Ghana Industries)</label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="window.history.back()">Back</button>
+                    <button type="submit" class="btn-primary">Register & Send Email</button>
+                </div>
+            </form>
+            
+            <div id="messageContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        function toggleAgiSection() {
+            const eventType = document.getElementById('eventType').value;
+            const agiSection = document.getElementById('agiSection');
+            
+            if (eventType === 'sme') {
+                agiSection.style.display = 'block';
+            } else {
+                agiSection.style.display = 'none';
+                document.getElementById('agiMember').checked = false;
+            }
+        }
+
+        document.getElementById('offlineRegistrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Show loading
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.innerHTML = '<div class="loading">Processing registration and sending email...</div>';
+            
+            try {
+                const response = await fetch('/api/offline-registration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        formData: {
+                            fullName: data.fullName,
+                            email: data.email,
+                            phone: data.phone,
+                            organization: data.organization,
+                            agiMember: data.agiMember === 'on'
+                        },
+                        eventType: data.eventType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    messageContainer.innerHTML = `
+                        <div class="success-message">
+                            <h3>✅ Registration Successful!</h3>
+                            <p>Registration has been created and confirmation email sent to ${data.email}</p>
+                            <p><strong>Transaction ID:</strong> ${result.clientReference}</p>
+                        </div>
+                    `;
+                    
+                    // Reset form
+                    this.reset();
+                    document.getElementById('agiSection').style.display = 'none';
+                } else {
+                    messageContainer.innerHTML = `
+                        <div class="error-message">
+                            <h3>❌ Registration Failed</h3>
+                            <p>${result.error || 'An error occurred while processing the registration'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                messageContainer.innerHTML = `
+                    <div class="error-message">
+                        <h3>❌ Error</h3>
+                        <p>An error occurred: ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

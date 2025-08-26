@@ -70,6 +70,197 @@
         .refresh-btn:hover {
             background: linear-gradient(135deg, #2d8659, #44b678);
         }
+        
+        .status-check-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .status-check-btn:hover {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+        }
+        
+        .status-check-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .status-check-btn.checking {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .status-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .status-modal-content {
+            background: linear-gradient(135deg, #2d8659, #1e5631);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-modal-header h2 {
+            margin: 0;
+            color: #44b678;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+        
+        .close-modal:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-result {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #44b678;
+        }
+        
+        .status-result.error {
+            border-left-color: #e74c3c;
+        }
+        
+        .status-result.pending {
+            border-left-color: #f39c12;
+        }
+        
+        .status-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+        }
+        
+        .status-detail-label {
+            font-weight: 600;
+            color: #44b678;
+        }
+        
+        .status-detail-value {
+            color: #fff;
+        }
+        
+        .bulk-status-check {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .bulk-status-check h3 {
+            margin: 0 0 15px 0;
+            color: #44b678;
+        }
+        
+        .bulk-status-check p {
+            margin: 10px 0;
+            color: #d0d0d0;
+        }
+        
+        .bulk-check-btn {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .bulk-check-btn:hover {
+            background: linear-gradient(135deg, #8e44ad, #9b59b6);
+        }
+        
+        .bulk-check-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .individual-status-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .individual-status-btn:hover {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+            transform: translateY(-1px);
+        }
+        
+        .individual-status-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .individual-status-btn.checking {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .individual-status-btn.success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+        
+        .individual-status-btn.error {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
         .table-container {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -224,12 +415,33 @@
                 </div>
                 <button class="export-btn" onclick="exportToCSV()">📊 Export CSV</button>
                 <button class="refresh-btn" onclick="loadRegistrations()">🔄 Refresh</button>
+                <button class="status-check-btn" onclick="openStatusCheckModal()">🔍 Check Status</button>
             </div>
         </div>
         
         <div class="table-container">
             <div id="registrations-container">
                 <div class="loading">Loading registrations...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Check Modal -->
+    <div id="statusModal" class="status-modal">
+        <div class="status-modal-content">
+            <div class="status-modal-header">
+                <h2>🔍 Transaction Status Check</h2>
+                <button class="close-modal" onclick="closeStatusModal()">&times;</button>
+            </div>
+            
+            <div class="bulk-status-check">
+                <h3>📋 Individual Transaction Status Check</h3>
+                <p>Click the "Check Status" button next to any transaction to verify its status with Hubtel's API.</p>
+                <p><strong>Note:</strong> This will check the real-time status directly with Hubtel and update the local database if the status has changed.</p>
+            </div>
+            
+            <div id="statusResults">
+                <!-- Status check results will be displayed here -->
             </div>
         </div>
     </div>
@@ -267,6 +479,7 @@
                 <table class="registrations-table">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>Name</th>
                             <th>Event</th>
                             <th>Email</th>
@@ -277,11 +490,13 @@
                             <th>Status</th>
                             <th>Created</th>
                             <th>Transaction ID</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${registrations.map(reg => `
+                        ${registrations.map((reg, index) => `
                             <tr>
+                                <td style="text-align: center; font-weight: 600; color: #44b678;">${index + 1}</td>
                                 <td>${reg.customerInfo.fullName}</td>
                                 <td>${reg.eventName}</td>
                                 <td>${reg.customerInfo.email}</td>
@@ -292,6 +507,12 @@
                                 <td><span class="status-${reg.paymentStatus}">${reg.paymentStatus.toUpperCase()}</span></td>
                                 <td>${new Date(reg.createdAt).toLocaleDateString()}</td>
                                 <td class="client-ref">${reg.clientReference || 'N/A'}</td>
+                                <td>
+                                    <button class="individual-status-btn" onclick="checkIndividualStatus('${reg.clientReference}', '${reg.customerInfo.fullName}')" 
+                                            data-client-ref="${reg.clientReference}">
+                                        🔍 Check Status
+                                    </button>
+                                </td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -301,9 +522,9 @@
             // Mobile card view
             const mobileHTML = `
                 <div class="mobile-cards">
-                    ${registrations.map(reg => `
+                    ${registrations.map((reg, index) => `
                         <div class="mobile-card">
-                            <h3>${reg.customerInfo.fullName}</h3>
+                            <h3>#${index + 1} - ${reg.customerInfo.fullName}</h3>
                             <p><span class="label">Event:</span> ${reg.eventName}</p>
                             <p><span class="label">Email:</span> ${reg.customerInfo.email}</p>
                             <p><span class="label">Phone:</span> ${reg.customerInfo.phone}</p>
@@ -313,6 +534,10 @@
                             <p><span class="label">Status:</span> <span class="status-${reg.paymentStatus}">${reg.paymentStatus.toUpperCase()}</span></p>
                             <p><span class="label">Created:</span> ${new Date(reg.createdAt).toLocaleDateString()}</p>
                             <p><span class="label">Transaction ID:</span> <span class="client-ref">${reg.clientReference || 'N/A'}</span></p>
+                            <button class="individual-status-btn" onclick="checkIndividualStatus('${reg.clientReference}', '${reg.customerInfo.fullName}')" 
+                                    data-client-ref="${reg.clientReference}">
+                                🔍 Check Status
+                            </button>
                         </div>
                     `).join('')}
                 </div>
@@ -386,6 +611,143 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        // Status Check Modal Functions
+        function openStatusCheckModal() {
+            const modal = document.getElementById('statusModal');
+            modal.style.display = 'block';
+        }
+
+        function closeStatusModal() {
+            const modal = document.getElementById('statusModal');
+            modal.style.display = 'none';
+            document.getElementById('statusResults').innerHTML = '';
+        }
+
+        async function checkIndividualStatus(clientReference, customerName) {
+            const button = document.querySelector(`[data-client-ref="${clientReference}"]`);
+            const originalText = button.textContent;
+            
+            // Disable button and show loading
+            button.disabled = true;
+            button.textContent = '🔄 Checking...';
+            button.classList.add('checking');
+            
+            try {
+                console.log(`🔍 Checking status for: ${customerName} (${clientReference})`);
+                
+                // Check status with Hubtel
+                const response = await fetch(`/api/transaction-status/${clientReference}`);
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                // Find the registration in our local data
+                const registration = allRegistrations.find(reg => reg.clientReference === clientReference);
+                const oldStatus = registration ? registration.paymentStatus : 'unknown';
+                
+                if (result.status && result.status !== oldStatus) {
+                    // Status changed - show success
+                    button.classList.remove('checking');
+                    button.classList.add('success');
+                    button.textContent = '✅ Updated';
+                    
+                    // Show notification
+                    showStatusNotification('success', `Status updated for ${customerName}: ${oldStatus.toUpperCase()} → ${result.status.toUpperCase()}`);
+                    
+                    // Refresh the registrations list to show updated status
+                    setTimeout(() => {
+                        loadRegistrations();
+                    }, 1000);
+                    
+                } else {
+                    // Status unchanged - show info
+                    button.classList.remove('checking');
+                    button.classList.add('success');
+                    button.textContent = 'ℹ️ No Change';
+                    
+                    showStatusNotification('info', `Status unchanged for ${customerName}: ${result.status.toUpperCase()}`);
+                }
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.classList.remove('checking', 'success', 'error');
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error checking status for:', clientReference, error);
+                
+                // Show error state
+                button.classList.remove('checking');
+                button.classList.add('error');
+                button.textContent = '❌ Error';
+                
+                showStatusNotification('error', `Error checking status for ${customerName}: ${error.message}`);
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.classList.remove('checking', 'success', 'error');
+                }, 3000);
+            }
+        }
+        
+        function showStatusNotification(type, message) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `status-notification ${type}`;
+            notification.textContent = message;
+            
+            // Add styles
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                z-index: 10000;
+                max-width: 400px;
+                word-wrap: break-word;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            // Set background color based on type
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+            } else if (type === 'error') {
+                notification.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+            } else {
+                notification.style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
+            }
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Remove after 4 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('statusModal');
+            if (event.target === modal) {
+                closeStatusModal();
+            }
         }
 
         // Load registrations on page load

@@ -22,4 +22,9 @@ router.get("/verify/:clientReference", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "views", "verify.html"));
 });
 
+// Offline registration page route
+router.get("/dftyeyyeyeyeeyeyeyeye123l", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "views", "offline-register.html"));
+});
+
 module.exports = router;

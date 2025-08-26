@@ -48,12 +48,10 @@ const verifyHubtelSignature = (paymentData, headers) => {
 
 ### 2. **Real-time Status Verification**
 ```javascript
-// TODO: Verify payment status with Hubtel API
-const verifyWithHubtelAPI = async (clientReference) => {
-  // Make API call to Hubtel to get real-time status
-  // Update local database if status differs
-  return "pending"; // Placeholder
-};
+// ✅ IMPLEMENTED: Verify payment status with Hubtel API
+const hubtelService = require('../utils/hubtelService');
+const result = await hubtelService.checkTransactionStatus(clientReference);
+// Updates local database if status differs from Hubtel
 ```
 
 ### 3. **Rate Limiting**
@@ -94,7 +92,7 @@ const verifyWithHubtelAPI = async (clientReference) => {
 
 ### Before Going Live:
 - [ ] Set up Hubtel signature verification
-- [ ] Configure real-time status verification
+- [x] Configure real-time status verification
 - [ ] Set up email notifications
 - [ ] Add rate limiting
 - [ ] Test with Hubtel sandbox
@@ -109,6 +107,7 @@ const verifyWithHubtelAPI = async (clientReference) => {
 # Hubtel Configuration
 HUBTEL_APP_ID=your-app-id-here
 HUBTEL_API_KEY=your-api-key-here
+HUBTEL_MERCHANT_ID=your-merchant-id-here
 HUBTEL_BRANDING=enabled
 HUBTEL_INTEGRATION_TYPE=External
 
