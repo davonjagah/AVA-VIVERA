@@ -1,6 +1,37 @@
 // Pre-filled registration page functionality
+let isFormReady = false;
+let pendingRegistration = null;
+
+// Test function to check DOM elements
+function testDOMElements() {
+  console.log("=== DOM ELEMENT TEST ===");
+  console.log("Document ready state:", document.readyState);
+  console.log("Body exists:", !!document.body);
+  console.log("Container exists:", !!document.querySelector(".container"));
+  console.log(
+    "Registration card exists:",
+    !!document.querySelector(".registration-card")
+  );
+  console.log("Form exists:", !!document.getElementById("registrationForm"));
+
+  const testElements = [
+    "fullName",
+    "email",
+    "phone",
+    "organization",
+    "event",
+    "price",
+  ];
+  testElements.forEach((id) => {
+    const el = document.getElementById(id);
+    console.log(`Element ${id}:`, el ? "FOUND" : "NOT FOUND", el);
+  });
+  console.log("=== END TEST ===");
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   console.log("DOM Content Loaded");
+  testDOMElements();
 
   // Get URL parameters
   const urlParams = new URLSearchParams(window.location.search);
@@ -16,16 +47,166 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
-  // Wait a bit more to ensure all scripts are loaded
-  setTimeout(() => {
-    console.log("Loading customer data after delay");
-    console.log("Events config available:", !!window.events);
-    console.log("Events:", window.events);
+  // Wait for all resources to load
+  window.addEventListener("load", function () {
+    console.log("Window loaded, checking form elements");
+    testDOMElements();
+    checkFormElementsAndLoad(eventType, clientReference);
+  });
 
-    // Load customer data and populate form
-    loadCustomerData(clientReference, eventType);
-  }, 200);
+  // Also try after a delay as backup
+  setTimeout(() => {
+    if (!isFormReady) {
+      console.log("Fallback: checking form elements after delay");
+      testDOMElements();
+      checkFormElementsAndLoad(eventType, clientReference);
+    }
+  }, 1000);
 });
+
+function checkFormElementsAndLoad(eventType, clientReference) {
+  console.log("Checking form elements...");
+
+  // Check if events config is loaded
+  if (!window.events) {
+    console.error("Events config not loaded yet");
+    setTimeout(() => checkFormElementsAndLoad(eventType, clientReference), 500);
+    return;
+  }
+
+  // Check if all required form elements exist
+  const requiredElements = [
+    "fullName",
+    "email",
+    "phone",
+    "organization",
+    "event",
+    "price",
+    "agiMember",
+    "agiMembershipGroup",
+  ];
+
+  const missingElements = [];
+  const foundElements = {};
+
+  requiredElements.forEach((id) => {
+    const element = document.getElementById(id);
+    foundElements[id] = element;
+    if (!element) {
+      missingElements.push(id);
+    } else {
+      console.log(`Element ${id} found:`, element);
+      console.log(`Element ${id} visible:`, element.offsetParent !== null);
+      console.log(
+        `Element ${id} display:`,
+        window.getComputedStyle(element).display
+      );
+    }
+  });
+
+  console.log("All elements status:", foundElements);
+
+  if (missingElements.length > 0) {
+    console.error("Missing form elements:", missingElements);
+
+    // Try to create missing elements as fallback
+    if (missingElements.length > 0) {
+      console.log("Attempting to create missing elements...");
+      createMissingElements(missingElements);
+
+      // Check again after creating elements
+      setTimeout(
+        () => checkFormElementsAndLoad(eventType, clientReference),
+        100
+      );
+      return;
+    }
+
+    // If still missing, try again after a delay
+    setTimeout(() => checkFormElementsAndLoad(eventType, clientReference), 500);
+    return;
+  }
+
+  console.log("All form elements found, proceeding to load data");
+  isFormReady = true;
+
+  // Load customer data and populate form
+  loadCustomerData(clientReference, eventType);
+}
+
+function createMissingElements(missingIds) {
+  const form = document.getElementById("registrationForm");
+  if (!form) {
+    console.error("Form not found, cannot create elements");
+    return;
+  }
+
+  missingIds.forEach((id) => {
+    if (id === "agiMembershipGroup") {
+      // Create the AGI membership group
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "form-group";
+      groupDiv.id = "agiMembershipGroup";
+      groupDiv.style.display = "none";
+
+      const checkboxGroup = document.createElement("div");
+      checkboxGroup.className = "checkbox-group";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = "agiMember";
+      checkbox.name = "agiMember";
+      checkbox.disabled = true;
+
+      const label = document.createElement("label");
+      label.htmlFor = "agiMember";
+      label.textContent =
+        "I am a member of AGI (Association of Ghana Industries)";
+
+      checkboxGroup.appendChild(checkbox);
+      checkboxGroup.appendChild(label);
+      groupDiv.appendChild(checkboxGroup);
+
+      // Insert before the event field
+      const eventField = document.getElementById("event");
+      if (eventField && eventField.parentNode) {
+        eventField.parentNode.parentNode.insertBefore(
+          groupDiv,
+          eventField.parentNode
+        );
+      }
+    } else {
+      // Create a simple input field
+      const formGroup = document.createElement("div");
+      formGroup.className = "form-group";
+
+      const label = document.createElement("label");
+      label.htmlFor = id;
+      label.textContent = id.charAt(0).toUpperCase() + id.slice(1) + " *";
+
+      const input = document.createElement("input");
+      input.type = id === "email" ? "email" : "text";
+      input.id = id;
+      input.name = id;
+      input.required = true;
+      input.readOnly = true;
+
+      formGroup.appendChild(label);
+      formGroup.appendChild(input);
+
+      // Insert before the event field
+      const eventField = document.getElementById("event");
+      if (eventField && eventField.parentNode) {
+        eventField.parentNode.parentNode.insertBefore(
+          formGroup,
+          eventField.parentNode
+        );
+      }
+    }
+
+    console.log(`Created element: ${id}`);
+  });
+}
 
 async function loadCustomerData(clientReference, eventType) {
   try {
@@ -50,6 +231,9 @@ async function loadCustomerData(clientReference, eventType) {
     if (registration.paymentStatus !== "pending") {
       throw new Error("This registration is not pending payment");
     }
+
+    // Store registration for later use
+    pendingRegistration = registration;
 
     // Populate the form with customer data
     populateForm(registration);
@@ -295,7 +479,7 @@ function showError(message) {
         <div class="error-container">
             <h2>❌ Error</h2>
             <p>${message}</p>
-            <button onclick="window.history.back()" class="btn-secondary">Go Back</button>
+            <button onclick="window.location.back()" class="btn-secondary">Go Back</button>
         </div>
     `;
   }
