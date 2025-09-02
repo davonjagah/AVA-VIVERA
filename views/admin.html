@@ -94,6 +94,39 @@
             background: linear-gradient(135deg, #f39c12, #e67e22);
         }
         
+        .remind-btn {
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        
+        .remind-btn:hover {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .remind-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .remind-btn.sending {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .remind-btn.success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+        
+        .remind-btn.error {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
         .status-modal {
             display: none;
             position: fixed;
@@ -512,6 +545,12 @@
                                             data-client-ref="${reg.clientReference}">
                                         🔍 Check Status
                                     </button>
+                                    ${reg.paymentStatus === 'pending' ? `
+                                    <button class="remind-btn" onclick="sendPaymentReminder('${reg.clientReference}', '${reg.customerInfo.fullName}')" 
+                                            data-client-ref="${reg.clientReference}">
+                                        📧 Remind
+                                    </button>
+                                    ` : ''}
                                 </td>
                             </tr>
                         `).join('')}
@@ -538,6 +577,12 @@
                                     data-client-ref="${reg.clientReference}">
                                 🔍 Check Status
                             </button>
+                            ${reg.paymentStatus === 'pending' ? `
+                            <button class="remind-btn" onclick="sendPaymentReminder('${reg.clientReference}', '${reg.customerInfo.fullName}')" 
+                                    data-client-ref="${reg.clientReference}">
+                                📧 Remind
+                            </button>
+                            ` : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -687,13 +732,84 @@
                 button.classList.add('error');
                 button.textContent = '❌ Error';
                 
-                showStatusNotification('error', `Error checking status for ${customerName}: ${error.message}`);
+                // Show user-friendly error message
+                let errorMessage = error.message;
+                if (error.message.includes('Transaction not found or older than a month')) {
+                  errorMessage = `Transaction not found in Hubtel system or older than a month`;
+                }
+                showStatusNotification('error', `Error checking status for ${customerName}: ${errorMessage}`);
                 
                 // Reset button after 3 seconds
                 setTimeout(() => {
                     button.disabled = false;
                     button.textContent = originalText;
                     button.classList.remove('checking', 'success', 'error');
+                }, 3000);
+            }
+        }
+        
+        // Send payment reminder email
+        async function sendPaymentReminder(clientReference, customerName) {
+            const button = document.querySelector(`[data-client-ref="${clientReference}"].remind-btn`);
+            if (!button) return;
+            
+            const originalText = button.textContent;
+            
+            try {
+                // Disable button and show loading state
+                button.disabled = true;
+                button.classList.add('sending');
+                button.textContent = '📧 Sending...';
+                
+                // Send reminder request
+                const response = await fetch('/api/send-payment-reminder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ clientReference }),
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success state
+                    button.classList.remove('sending');
+                    button.classList.add('success');
+                    button.textContent = '✅ Sent';
+                    
+                    showStatusNotification('success', `Payment reminder sent to ${customerName}`);
+                } else {
+                    // Show error state
+                    button.classList.remove('sending');
+                    button.classList.add('error');
+                    button.textContent = '❌ Failed';
+                    
+                    showStatusNotification('error', `Failed to send reminder to ${customerName}: ${result.error}`);
+                }
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.classList.remove('sending', 'success', 'error');
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error sending payment reminder:', error);
+                
+                // Show error state
+                button.classList.remove('sending');
+                button.classList.add('error');
+                button.textContent = '❌ Error';
+                
+                showStatusNotification('error', `Error sending reminder to ${customerName}: ${error.message}`);
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.classList.remove('sending', 'success', 'error');
                 }, 3000);
             }
         }

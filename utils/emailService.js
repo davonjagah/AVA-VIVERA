@@ -155,17 +155,17 @@ const emailTemplates = {
     subject: `Payment Failed - ${data.eventName}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #e74c3c; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+        <div style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
           <h1 style="margin: 0; font-size: 24px;">Payment Failed</h1>
           <p style="margin: 10px 0 0 0; font-size: 16px;">Value Creation Summit 2025</p>
         </div>
         
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-          <h2 style="color: #e74c3c; margin-top: 0;">Payment Unsuccessful</h2>
+          <h2 style="color: #e74c3c; margin-top: 0;">Payment Processing Issue</h2>
           
           <p>Dear <strong>${data.customerName}</strong>,</p>
           
-          <p>We're sorry, but your payment for the <strong>${data.eventName}</strong> was not successful.</p>
+          <p>We encountered an issue processing your payment for the <strong>${data.eventName}</strong>. Your registration is currently pending.</p>
           
           <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #e74c3c;">
             <h3 style="color: #e74c3c; margin-top: 0;">Transaction Details</h3>
@@ -175,38 +175,102 @@ const emailTemplates = {
                 <td style="padding: 8px 0;">${data.eventName}</td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #666;">Transaction ID:</td>
-                <td style="padding: 8px 0; font-family: monospace;">${data.clientReference}</td>
-              </tr>
-              <tr>
                 <td style="padding: 8px 0; font-weight: bold; color: #666;">Amount:</td>
-                <td style="padding: 8px 0;">GHS ${data.amount}</td>
+                <td style="padding: 8px 0;">${data.amount}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; font-weight: bold; color: #666;">Date:</td>
                 <td style="padding: 8px 0;">${data.paymentDate}</td>
               </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Reference:</td>
+                <td style="padding: 8px 0;">${data.clientReference}</td>
+              </tr>
             </table>
           </div>
           
-          <div style="background: #ffeaea; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h4 style="color: #e74c3c; margin-top: 0;">What to do next?</h4>
-            <ul style="margin: 10px 0; padding-left: 20px;">
-              <li>Please try making the payment again</li>
-              <li>Ensure you have sufficient funds in your account</li>
-              <li>Contact us if you continue to experience issues</li>
-            </ul>
+          <p>Please try again or contact our support team if the issue persists. Your registration details have been saved and you can attempt payment again.</p>
+          
+          <p>If you have any questions, please don't hesitate to contact us.</p>
+          
+          <p>Best regards,<br>
+          <strong>Value Creation Summit Team</strong></p>
+        </div>
+      </div>
+    `,
+  }),
+
+  paymentReminder: (data) => ({
+    subject: `Payment Reminder - ${data.eventName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #e67e22, #f39c12); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">Payment Reminder</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px;">Value Creation Summit 2025</p>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #e67e22; margin-top: 0;">Complete Your Registration</h2>
+          
+          <p>Dear <strong>${data.customerName}</strong>,</p>
+          
+          <p>We noticed that your registration for the <strong>${
+            data.eventName
+          }</strong> is incomplete. Your payment has not been processed yet.</p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #e67e22;">
+            <h3 style="color: #e67e22; margin-top: 0;">Event Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Event:</td>
+                <td style="padding: 8px 0;">${data.eventName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Date:</td>
+                <td style="padding: 8px 0;">${
+                  data.eventDate || "September 9, 2025"
+                }</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Location:</td>
+                <td style="padding: 8px 0;">${
+                  data.eventLocation || "Accra City Hotel"
+                }</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #666;">Price:</td>
+                <td style="padding: 8px 0;">${data.eventPrice}</td>
+              </tr>
+            </table>
           </div>
           
-          <div style="text-align: center; margin-top: 30px;">
-            <p style="color: #666; font-size: 14px;">
-              For assistance, kindly reach us at <a href="mailto:nakunyili@accessviewafrica.com" style="color: #44b678;">nakunyili@accessviewafrica.com</a> or +233 240 509 803.
-            </p>
-            <p style="color: #666; font-size: 12px;">
-              Best regards,<br>
-              Access View Africa Team
+          <p><strong>To complete your registration and secure your spot, please click the button below:</strong></p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${
+              data.registrationLink
+            }" style="background: linear-gradient(135deg, #e67e22, #f39c12); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; font-size: 16px;">
+              Complete Payment Now
+            </a>
+          </div>
+          
+          <p style="font-size: 14px; color: #666; text-align: center;">
+            Or copy and paste this link: <br>
+            <a href="${data.registrationLink}" style="color: #e67e22;">${
+      data.registrationLink
+    }</a>
+          </p>
+          
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; color: #856404;">
+              <strong>Note:</strong> Your form details have been saved and will be pre-filled when you visit the link above. You can proceed directly to payment without re-entering your information.
             </p>
           </div>
+          
+          <p>If you have any questions or need assistance, please don't hesitate to contact us.</p>
+          
+          <p>Best regards,<br>
+          <strong>Value Creation Summit Team</strong></p>
         </div>
       </div>
     `,
@@ -297,9 +361,32 @@ async function sendPaymentFailure(registrationData, paymentData) {
   );
 }
 
+// Send payment reminder email
+async function sendPaymentReminder(registrationData) {
+  // Create registration link with pre-filled form data
+  const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+  const registrationLink = `${baseUrl}/register-prefill?event=${registrationData.eventType}&ref=${registrationData.clientReference}`;
+
+  const emailData = {
+    customerName: registrationData.customerInfo.fullName,
+    eventName: registrationData.eventName,
+    eventDate: registrationData.eventDate || "September 9, 2025",
+    eventLocation: registrationData.eventLocation || "Accra City Hotel",
+    eventPrice: registrationData.eventPrice,
+    registrationLink: registrationLink,
+  };
+
+  return await sendEmail(
+    registrationData.customerInfo.email,
+    "paymentReminder",
+    emailData
+  );
+}
+
 module.exports = {
   sendEmail,
   sendPaymentConfirmation,
   sendPaymentFailure,
+  sendPaymentReminder,
   generateQRCode,
 };

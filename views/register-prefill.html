@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Registration</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/register.css">
+</head>
+<body>
+    <header>
+        <div class="header-logo-container">
+            <img src="/images/logo.png" alt="Event Logo 1" class="header-logo">
+            <img src="/images/vivera.png" alt="Event Logo 2" class="header-logo">
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="registration-card">
+            <div class="registration-header">
+                <h1 id="eventTitle">Complete Your Registration</h1>
+                <p class="event-subtitle" id="eventSubtitle">Your details have been pre-filled</p>
+                <p class="event-details" id="eventDetails">Date • Time • Location • Price</p>
+                <div class="prefill-notice">
+                    <p>✅ Your registration details have been loaded. Please review and proceed to payment.</p>
+                </div>
+            </div>
+
+            <form class="registration-form" id="registrationForm">
+                <div class="form-group">
+                    <label for="fullName">Full Name *</label>
+                    <input type="text" id="fullName" name="fullName" required readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" required readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="organization">Organization/Company *</label>
+                    <input type="text" id="organization" name="organization" required readonly>
+                </div>
+
+                <div class="form-group" id="agiMembershipGroup" style="display: none;">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="agiMember" name="agiMember" disabled>
+                        <label for="agiMember">I am a member of AGI (Association of Ghana Industries)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="event">Selected Event</label>
+                    <input type="text" id="event" name="event" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="price">Event Price</label>
+                    <input type="text" id="price" name="price" disabled>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="window.history.back()">Back</button>
+                    <button type="submit" class="btn-primary">Proceed to Payment</button>
+                </div>
+            </form>
+
+            <!-- Payment section -->
+            <div class="payment-section" id="paymentSection" style="display: none;">
+                <h3>Complete Your Payment</h3>
+                <div class="payment-container">
+                    <div class="payment-info">
+                        <p>You will be redirected to the secure Hubtel payment gateway to complete your transaction.</p>
+                        <div class="payment-details">
+                            <div class="detail-item">
+                                <span class="label">Amount:</span>
+                                <span class="value" id="paymentAmount">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Event:</span>
+                                <span class="value" id="paymentEvent">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="iframe-container">
+                        <!-- Hubtel iframe will be inserted here (fallback) -->
+                        <div id="hubtel-checkout-iframe"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Event Organizer. All rights reserved.</p>
+        <p><a href="https://www.accessviewafrica.com">View Africa</a> | <a href="https://www.vivera.com">Vivera</a></p>
+    </footer>
+
+    <!-- Hubtel Checkout SDK (Bundled) -->
+    <script src="/js/hubtel-sdk.bundle.js"></script>
+    <script src="/js/events-config.js"></script>
+    <script src="/js/register-prefill.js"></script>
+</body>
+</html>

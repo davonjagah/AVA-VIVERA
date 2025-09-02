@@ -5,6 +5,7 @@ const events = require("../config/events");
 const {
   sendPaymentConfirmation,
   sendPaymentFailure,
+  sendPaymentReminder,
 } = require("../utils/emailService");
 
 // Get all events
@@ -442,12 +443,50 @@ router.get("/registrations", async (req, res) => {
       registrations: allRegistrations,
     });
   } catch (error) {
+    console.error("Error fetching registrations:", error);
     // Return empty array if database is not available
     res.json({
       success: true,
       count: 0,
       registrations: [],
       message: "Database temporarily unavailable. Showing empty list.",
+    });
+  }
+});
+
+// Get specific registration by client reference
+router.get("/registrations/:clientReference", async (req, res) => {
+  try {
+    const { clientReference } = req.params;
+
+    if (!clientReference) {
+      return res.status(400).json({
+        success: false,
+        error: "clientReference is required",
+      });
+    }
+
+    const db = await getDatabase();
+    const registrations = db.collection("registrations");
+
+    const registration = await registrations.findOne({ clientReference });
+
+    if (!registration) {
+      return res.status(404).json({
+        success: false,
+        error: "Registration not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      registration: registration,
+    });
+  } catch (error) {
+    console.error("Error fetching registration:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch registration",
     });
   }
 });
@@ -607,40 +646,57 @@ router.get("/transaction-status/:clientReference", async (req, res) => {
 
     if (hubtelResult.success) {
       const hubtelStatus = hubtelService.mapHubtelStatus(
-        hubtelResult.data.status
+        hubtelResult.data.TransactionStatus
       );
       const localStatus = registration.paymentStatus;
 
       console.log(`📊 Status comparison for ${clientReference}:`, {
         local: localStatus,
         hubtel: hubtelStatus,
-        hubtelRaw: hubtelResult.data.status,
+        hubtelRaw: hubtelResult.data.TransactionStatus,
       });
 
-      // Update local database if Hubtel status differs from local status
-      if (hubtelStatus !== localStatus) {
-        console.log(
-          `🔄 Updating local status for ${clientReference}: ${localStatus} → ${hubtelStatus}`
-        );
+      // Only update database if transaction is not already completed in our database
+      if (localStatus !== "completed") {
+        if (hubtelStatus !== localStatus) {
+          console.log(
+            `🔄 Updating local status for ${clientReference}: ${localStatus} → ${hubtelStatus}`
+          );
 
-        await registrations.updateOne(
-          { clientReference },
-          {
-            $set: {
-              paymentStatus: hubtelStatus,
-              updatedAt: new Date(),
-              lastHubtelCheck: new Date(),
-              hubtelData: hubtelResult.data,
-            },
-          }
-        );
+          await registrations.updateOne(
+            { clientReference },
+            {
+              $set: {
+                paymentStatus: hubtelStatus,
+                updatedAt: new Date(),
+                lastHubtelCheck: new Date(),
+                hubtelData: hubtelResult.data,
+              },
+            }
+          );
 
-        // Update the registration object for response
-        registration.paymentStatus = hubtelStatus;
-        registration.lastHubtelCheck = new Date();
-        registration.hubtelData = hubtelResult.data;
+          // Update the registration object for response
+          registration.paymentStatus = hubtelStatus;
+          registration.lastHubtelCheck = new Date();
+          registration.hubtelData = hubtelResult.data;
+        } else {
+          // Just update the last check time
+          await registrations.updateOne(
+            { clientReference },
+            {
+              $set: {
+                lastHubtelCheck: new Date(),
+                hubtelData: hubtelResult.data,
+              },
+            }
+          );
+        }
       } else {
-        // Just update the last check time
+        // Transaction is already completed in our database, just update check time
+        console.log(
+          `ℹ️ Transaction ${clientReference} already completed in database, only updating check time`
+        );
+
         await registrations.updateOne(
           { clientReference },
           {
@@ -776,6 +832,75 @@ router.get("/pending-registrations", async (req, res) => {
   }
 });
 
+// Send payment reminder email
+router.post("/send-payment-reminder", async (req, res) => {
+  try {
+    const { clientReference } = req.body;
+
+    if (!clientReference) {
+      return res.status(400).json({
+        success: false,
+        error: "clientReference is required",
+      });
+    }
+
+    const db = await getDatabase();
+    const registrations = db.collection("registrations");
+
+    // Find the registration
+    const registration = await registrations.findOne({ clientReference });
+
+    if (!registration) {
+      return res.status(404).json({
+        success: false,
+        error: "Registration not found",
+      });
+    }
+
+    if (registration.paymentStatus !== "pending") {
+      return res.status(400).json({
+        success: false,
+        error: "Can only send reminders for pending registrations",
+      });
+    }
+
+    // Send the reminder email
+    const emailResult = await sendPaymentReminder(registration);
+
+    if (emailResult.success) {
+      // Update the registration to track reminder sent
+      await registrations.updateOne(
+        { clientReference },
+        {
+          $set: {
+            lastReminderSent: new Date(),
+            reminderCount: (registration.reminderCount || 0) + 1,
+          },
+        }
+      );
+
+      res.json({
+        success: true,
+        message: "Payment reminder sent successfully",
+        emailResult,
+        clientReference,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Failed to send payment reminder",
+        emailError: emailResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error sending payment reminder:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to send payment reminder",
+    });
+  }
+});
+
 // Test Hubtel transaction status check endpoint
 router.post("/test-hubtel-status", async (req, res) => {
   try {
@@ -818,6 +943,108 @@ router.post("/test-hubtel-status", async (req, res) => {
     console.error("Test Hubtel status check error:", error);
     res.status(500).json({
       success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Simple test endpoint to verify Hubtel API directly
+router.get("/test-hubtel-direct/:clientReference", async (req, res) => {
+  try {
+    const { clientReference } = req.params;
+    const https = require("https");
+
+    // Use the same authentication as payment initiation
+    const appId = process.env.HUBTEL_APP_ID;
+    const apiKey = process.env.HUBTEL_API_KEY;
+
+    if (!appId || !apiKey) {
+      return res.status(400).json({
+        error: "HUBTEL_APP_ID and HUBTEL_API_KEY must be configured",
+      });
+    }
+
+    const credentials = `${appId}:${apiKey}`;
+    const base64Credentials = Buffer.from(credentials).toString("base64");
+    const authHeader = `Basic ${base64Credentials}`;
+
+    console.log("🔧 Using Hubtel credentials:", {
+      appId: appId ? "configured" : "missing",
+      apiKey: apiKey ? "configured" : "missing",
+      authHeader: authHeader.substring(0, 20) + "...",
+    });
+
+    const results = [];
+
+    const merchantId = process.env.HUBTEL_MERCHANT_ID || "11684";
+
+    const options = {
+      hostname: "rmsc.hubtel.com",
+      port: 443,
+      path: `/v1/merchantaccount/merchants/${merchantId}/transactions/status?clientReference=${clientReference}`,
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+        "User-Agent": "AVA-VIVERA/1.0",
+      },
+    };
+
+    console.log("🔧 Testing Hubtel API with correct credentials:", {
+      hostname: options.hostname,
+      path: options.path,
+      authorization: options.headers.Authorization.substring(0, 20) + "...",
+    });
+
+    const result = await new Promise((resolve) => {
+      const request = https.request(options, (response) => {
+        let data = "";
+
+        response.on("data", (chunk) => {
+          data += chunk;
+        });
+
+        response.on("end", () => {
+          console.log("🔧 Hubtel API Response:", {
+            statusCode: response.statusCode,
+            data: data,
+          });
+
+          resolve({
+            statusCode: response.statusCode,
+            data: data,
+            parsed: data
+              ? (() => {
+                  try {
+                    return JSON.parse(data);
+                  } catch (e) {
+                    return null;
+                  }
+                })()
+              : null,
+          });
+        });
+      });
+
+      request.on("error", (error) => {
+        console.error("Hubtel API Error:", error);
+        resolve({
+          error: error.message,
+        });
+      });
+
+      request.end();
+    });
+
+    results.push(result);
+
+    res.json({
+      clientReference,
+      results,
+    });
+  } catch (error) {
+    console.error("Direct test error:", error);
+    res.status(500).json({
       error: error.message,
     });
   }

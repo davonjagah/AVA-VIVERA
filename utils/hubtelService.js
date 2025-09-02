@@ -7,13 +7,19 @@ const https = require("https");
 
 class HubtelService {
   constructor() {
+    this.posSalesId = process.env.HUBTEL_MERCHANT_ID || "11684"; // Default merchant ID
     this.appId = process.env.HUBTEL_APP_ID;
     this.apiKey = process.env.HUBTEL_API_KEY;
-    this.posSalesId = process.env.HUBTEL_MERCHANT_ID; // New environment variable needed
 
-    if (!this.appId || !this.apiKey || !this.posSalesId) {
+    if (!this.posSalesId) {
       console.warn(
-        "⚠️ Hubtel credentials not fully configured. Transaction status checks may fail."
+        "⚠️ Hubtel merchant ID not configured. Using default merchant ID."
+      );
+    }
+
+    if (!this.appId || !this.apiKey) {
+      console.warn(
+        "⚠️ Hubtel APP_ID or API_KEY not configured. Status checks may fail."
       );
     }
   }
@@ -23,9 +29,10 @@ class HubtelService {
    */
   createAuthHeader() {
     if (!this.appId || !this.apiKey) {
-      throw new Error("Hubtel credentials not configured");
+      throw new Error("Hubtel APP_ID or API_KEY not configured");
     }
 
+    // Use the same authentication method as payment initiation
     const credentials = `${this.appId}:${this.apiKey}`;
     const base64Credentials = Buffer.from(credentials).toString("base64");
     return `Basic ${base64Credentials}`;
@@ -37,7 +44,7 @@ class HubtelService {
   makeHubtelRequest(path, method = "GET") {
     return new Promise((resolve, reject) => {
       const options = {
-        hostname: "api-txnstatus.hubtel.com",
+        hostname: "rmsc.hubtel.com",
         port: 443,
         path: path,
         method: method,
@@ -48,6 +55,13 @@ class HubtelService {
         },
       };
 
+      console.log("🔧 Hubtel API Request:", {
+        hostname: options.hostname,
+        path: options.path,
+        method: options.method,
+        authorization: options.headers.Authorization,
+      });
+
       const req = https.request(options, (res) => {
         let data = "";
 
@@ -56,16 +70,32 @@ class HubtelService {
         });
 
         res.on("end", () => {
+          console.log("🔧 Hubtel API Response:", {
+            statusCode: res.statusCode,
+            headers: res.headers,
+            data: data,
+          });
+
           try {
             const response = JSON.parse(data);
 
             if (res.statusCode >= 200 && res.statusCode < 300) {
               resolve(response);
             } else {
+              // Handle specific Hubtel error codes
+              let errorMessage = "Hubtel API request failed";
+              if (response.ResponseCode === "4720") {
+                errorMessage = "Transaction not found or older than a month";
+              } else if (response.Message) {
+                errorMessage = response.Message;
+              } else if (response.message) {
+                errorMessage = response.message;
+              }
+
               reject({
                 statusCode: res.statusCode,
-                message: response.message || "Hubtel API request failed",
-                responseCode: response.responseCode,
+                message: errorMessage,
+                responseCode: response.ResponseCode || response.responseCode,
                 data: response,
               });
             }
@@ -131,27 +161,37 @@ class HubtelService {
         throw new Error("At least one transaction identifier is required");
       }
 
-      const path = `/transactions/${
+      const path = `/v1/merchantaccount/merchants/${
         this.posSalesId
-      }/status?${params.toString()}`;
+      }/transactions/status?${params.toString()}`;
 
       console.log(
         `🔍 Checking Hubtel transaction status for: ${clientReference}`
       );
+      console.log(`🔧 Hubtel API Details:`, {
+        merchantId: this.posSalesId,
+        endpoint: `https://rmsc.hubtel.com${path}`,
+        clientReference: clientReference,
+      });
 
       const response = await this.makeHubtelRequest(path);
 
+      // Parse the response structure correctly
+      const transactionData =
+        response.Data && response.Data.length > 0 ? response.Data[0] : null;
+
       console.log(`✅ Hubtel status check successful for ${clientReference}:`, {
-        status: response.data?.status,
-        responseCode: response.responseCode,
-        transactionId: response.data?.transactionId,
+        status: transactionData?.TransactionStatus,
+        responseCode: response.ResponseCode,
+        transactionId: transactionData?.TransactionId,
+        clientReference: transactionData?.ClientReference,
       });
 
       return {
         success: true,
-        data: response.data,
-        message: response.message,
-        responseCode: response.responseCode,
+        data: transactionData,
+        message: response.Message || "Success",
+        responseCode: response.ResponseCode,
       };
     } catch (error) {
       console.error(
@@ -173,11 +213,14 @@ class HubtelService {
    */
   mapHubtelStatus(hubtelStatus) {
     const statusMap = {
+      Success: "completed",
+      Failed: "failed",
+      Pending: "pending",
+      Cancelled: "cancelled",
+      Refunded: "refunded",
+      // Also handle the old format
       Paid: "completed",
       Unpaid: "pending",
-      Refunded: "refunded",
-      Failed: "failed",
-      Cancelled: "cancelled",
     };
 
     return statusMap[hubtelStatus] || "unknown";
@@ -187,7 +230,7 @@ class HubtelService {
    * Verify if Hubtel credentials are configured
    */
   isConfigured() {
-    return !!(this.appId && this.apiKey && this.posSalesId);
+    return !!(this.posSalesId && this.appId && this.apiKey);
   }
 }
 

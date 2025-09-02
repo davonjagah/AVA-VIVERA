@@ -20,6 +20,8 @@ This implementation provides the mandatory Hubtel Transaction Status Check API f
 GET /api/transaction-status/:clientReference
 ```
 
+**Note:** This endpoint uses Hubtel's RMS API which doesn't require IP whitelisting.
+
 **Query Parameters:**
 - `hubtelTransactionId` (optional): Hubtel transaction ID
 - `networkTransactionId` (optional): Network transaction ID
@@ -70,17 +72,15 @@ Add these to your `.env` file:
 
 ```env
 # Hubtel Configuration
-HUBTEL_APP_ID=your-app-id-here
-HUBTEL_API_KEY=your-api-key-here
-HUBTEL_MERCHANT_ID=your-merchant-id-here
+HUBTEL_MERCHANT_ID=11684
+HUBTEL_AUTH_TOKEN=V25aTnVjZmNiOTU3Yw==
 ```
 
 ### Getting Your Merchant ID
 
-1. Log into your Hubtel merchant dashboard
-2. Navigate to the API section
-3. Find your Merchant ID in the transaction status check documentation
-4. Contact your Retail Systems Engineer to whitelist your IP addresses
+1. The default Merchant ID (11684) is already configured
+2. If you need to use a different Merchant ID, update the `HUBTEL_MERCHANT_ID` environment variable
+3. No IP whitelisting is required for this endpoint
 
 ## 🛠️ Implementation Details
 
@@ -154,15 +154,15 @@ statusChecker.startPolling(
 
 ### IP Whitelisting
 
-- Only requests from whitelisted IP addresses can reach the Hubtel endpoint
-- Maximum of 4 IP addresses per service
-- Contact your Retail Systems Engineer to whitelist your IPs
+- **No IP whitelisting required** for this endpoint
+- Uses Hubtel's RMS API which is publicly accessible
+- Works from any server location
 
 ### Authentication
 
-- Uses Basic Authentication with your Hubtel credentials
-- Credentials are stored securely in environment variables
-- Never exposed in client-side code
+- Uses Basic Authentication with a pre-configured token
+- Token is stored securely in environment variables
+- No need to manage individual API credentials
 
 ### Error Handling
 
@@ -213,12 +213,12 @@ curl -X POST http://localhost:3000/api/test-hubtel-status \
 ### Common Issues
 
 1. **403 Forbidden Error**
-   - Your IP address is not whitelisted
-   - Contact your Retail Systems Engineer
+   - Check that the merchant ID is correct
+   - Verify the authorization token is valid
 
 2. **Credentials Not Configured**
-   - Check that all environment variables are set
-   - Verify credentials are correct
+   - Check that HUBTEL_MERCHANT_ID is set
+   - Verify HUBTEL_AUTH_TOKEN is configured
 
 3. **Timeout Errors**
    - Network connectivity issues
