@@ -1,261 +1,45 @@
 // Pre-filled registration page functionality
-let isFormReady = false;
-let pendingRegistration = null;
-
-// Test function to check DOM elements
-function testDOMElements() {
-  console.log("=== DOM ELEMENT TEST ===");
-  console.log("Document ready state:", document.readyState);
-  console.log("Body exists:", !!document.body);
-  console.log("Container exists:", !!document.querySelector(".container"));
-  console.log(
-    "Registration card exists:",
-    !!document.querySelector(".registration-card")
-  );
-  console.log("Form exists:", !!document.getElementById("registrationForm"));
-
-  const testElements = [
-    "fullName",
-    "email",
-    "phone",
-    "organization",
-    "event",
-    "price",
-  ];
-  testElements.forEach((id) => {
-    const el = document.getElementById(id);
-    console.log(`Element ${id}:`, el ? "FOUND" : "NOT FOUND", el);
-  });
-  console.log("=== END TEST ===");
-}
-
 document.addEventListener("DOMContentLoaded", function () {
   console.log("DOM Content Loaded");
-  testDOMElements();
 
-  // Get URL parameters
+  // Get all URL parameters
   const urlParams = new URLSearchParams(window.location.search);
-  const eventType = urlParams.get("event");
-  const clientReference = urlParams.get("ref");
 
-  console.log("URL Params:", { eventType, clientReference });
-
-  if (!eventType || !clientReference) {
+  // Check if we have the required parameters
+  if (!urlParams.get("event") || !urlParams.get("ref")) {
     showError(
       "Missing required parameters. Please use the link from your email."
     );
     return;
   }
 
-  // Wait for all resources to load
-  window.addEventListener("load", function () {
-    console.log("Window loaded, checking form elements");
-    testDOMElements();
-    checkFormElementsAndLoad(eventType, clientReference);
-  });
+  // Pre-fill the form with URL parameters
+  populateFormFromURL(urlParams);
 
-  // Also try after a delay as backup
-  setTimeout(() => {
-    if (!isFormReady) {
-      console.log("Fallback: checking form elements after delay");
-      testDOMElements();
-      checkFormElementsAndLoad(eventType, clientReference);
-    }
-  }, 1000);
+  // Load event details
+  loadEventDetails(urlParams.get("event"));
 });
 
-function checkFormElementsAndLoad(eventType, clientReference) {
-  console.log("Checking form elements...");
-
-  // Check if events config is loaded
-  if (!window.events) {
-    console.error("Events config not loaded yet");
-    setTimeout(() => checkFormElementsAndLoad(eventType, clientReference), 500);
-    return;
-  }
-
-  // Check if all required form elements exist
-  const requiredElements = [
-    "fullName",
-    "email",
-    "phone",
-    "organization",
-    "event",
-    "price",
-    "agiMember",
-    "agiMembershipGroup",
-  ];
-
-  const missingElements = [];
-  const foundElements = {};
-
-  requiredElements.forEach((id) => {
-    const element = document.getElementById(id);
-    foundElements[id] = element;
-    if (!element) {
-      missingElements.push(id);
-    } else {
-      console.log(`Element ${id} found:`, element);
-      console.log(`Element ${id} visible:`, element.offsetParent !== null);
-      console.log(
-        `Element ${id} display:`,
-        window.getComputedStyle(element).display
-      );
-    }
-  });
-
-  console.log("All elements status:", foundElements);
-
-  if (missingElements.length > 0) {
-    console.error("Missing form elements:", missingElements);
-
-    // Try to create missing elements as fallback
-    if (missingElements.length > 0) {
-      console.log("Attempting to create missing elements...");
-      createMissingElements(missingElements);
-
-      // Check again after creating elements
-      setTimeout(
-        () => checkFormElementsAndLoad(eventType, clientReference),
-        100
-      );
-      return;
-    }
-
-    // If still missing, try again after a delay
-    setTimeout(() => checkFormElementsAndLoad(eventType, clientReference), 500);
-    return;
-  }
-
-  console.log("All form elements found, proceeding to load data");
-  isFormReady = true;
-
-  // Load customer data and populate form
-  loadCustomerData(clientReference, eventType);
-}
-
-function createMissingElements(missingIds) {
-  const form = document.getElementById("registrationForm");
-  if (!form) {
-    console.error("Form not found, cannot create elements");
-    return;
-  }
-
-  missingIds.forEach((id) => {
-    if (id === "agiMembershipGroup") {
-      // Create the AGI membership group
-      const groupDiv = document.createElement("div");
-      groupDiv.className = "form-group";
-      groupDiv.id = "agiMembershipGroup";
-      groupDiv.style.display = "none";
-
-      const checkboxGroup = document.createElement("div");
-      checkboxGroup.className = "checkbox-group";
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.id = "agiMember";
-      checkbox.name = "agiMember";
-      checkbox.disabled = true;
-
-      const label = document.createElement("label");
-      label.htmlFor = "agiMember";
-      label.textContent =
-        "I am a member of AGI (Association of Ghana Industries)";
-
-      checkboxGroup.appendChild(checkbox);
-      checkboxGroup.appendChild(label);
-      groupDiv.appendChild(checkboxGroup);
-
-      // Insert before the event field
-      const eventField = document.getElementById("event");
-      if (eventField && eventField.parentNode) {
-        eventField.parentNode.parentNode.insertBefore(
-          groupDiv,
-          eventField.parentNode
-        );
-      }
-    } else {
-      // Create a simple input field
-      const formGroup = document.createElement("div");
-      formGroup.className = "form-group";
-
-      const label = document.createElement("label");
-      label.htmlFor = id;
-      label.textContent = id.charAt(0).toUpperCase() + id.slice(1) + " *";
-
-      const input = document.createElement("input");
-      input.type = id === "email" ? "email" : "text";
-      input.id = id;
-      input.name = id;
-      input.required = true;
-      input.readOnly = true;
-
-      formGroup.appendChild(label);
-      formGroup.appendChild(input);
-
-      // Insert before the event field
-      const eventField = document.getElementById("event");
-      if (eventField && eventField.parentNode) {
-        eventField.parentNode.parentNode.insertBefore(
-          formGroup,
-          eventField.parentNode
-        );
-      }
-    }
-
-    console.log(`Created element: ${id}`);
-  });
-}
-
-async function loadCustomerData(clientReference, eventType) {
+function populateFormFromURL(urlParams) {
   try {
-    // Show loading state
-    showLoading();
+    console.log("Populating form from URL parameters");
 
-    // Fetch customer data from the database
-    const response = await fetch(`/api/registrations/${clientReference}`);
-    const data = await response.json();
+    // Get all the customer details from URL
+    const customerData = {
+      fullName: urlParams.get("fullName") || "",
+      email: urlParams.get("email") || "",
+      phone: urlParams.get("phone") || "",
+      organization: urlParams.get("organization") || "",
+      agiMember: urlParams.get("agiMember") === "true",
+      eventName: urlParams.get("eventName") || "",
+      eventPrice: urlParams.get("eventPrice") || "",
+      eventDate: urlParams.get("eventDate") || "",
+      eventLocation: urlParams.get("eventLocation") || "",
+    };
 
-    if (!data.success) {
-      throw new Error(data.error || "Failed to load customer data");
-    }
+    console.log("Customer data from URL:", customerData);
 
-    const registration = data.registration;
-
-    // Verify this is the correct registration
-    if (registration.eventType !== eventType) {
-      throw new Error("Event type mismatch");
-    }
-
-    if (registration.paymentStatus !== "pending") {
-      throw new Error("This registration is not pending payment");
-    }
-
-    // Store registration for later use
-    pendingRegistration = registration;
-
-    // Populate the form with customer data
-    populateForm(registration);
-
-    // Load event details
-    loadEventDetails(eventType);
-
-    // Hide loading and show form
-    hideLoading();
-    showForm();
-  } catch (error) {
-    console.error("Error loading customer data:", error);
-    hideLoading();
-    showError(error.message);
-  }
-}
-
-function populateForm(registration) {
-  try {
-    console.log("Populating form with registration:", registration);
-
-    // Populate customer information
+    // Populate form fields
     const fullNameEl = document.getElementById("fullName");
     const emailEl = document.getElementById("email");
     const phoneEl = document.getElementById("phone");
@@ -265,27 +49,16 @@ function populateForm(registration) {
     const agiMemberEl = document.getElementById("agiMember");
     const agiMembershipGroupEl = document.getElementById("agiMembershipGroup");
 
-    console.log("Form elements found:", {
-      fullName: !!fullNameEl,
-      email: !!emailEl,
-      phone: !!phoneEl,
-      organization: !!organizationEl,
-      event: !!eventEl,
-      price: !!priceEl,
-      agiMember: !!agiMemberEl,
-      agiMembershipGroup: !!agiMembershipGroupEl,
-    });
-
-    if (fullNameEl) fullNameEl.value = registration.customerInfo.fullName;
-    if (emailEl) emailEl.value = registration.customerInfo.email;
-    if (phoneEl) phoneEl.value = registration.customerInfo.phone;
-    if (organizationEl)
-      organizationEl.value = registration.customerInfo.organization;
-    if (eventEl) eventEl.value = registration.eventName;
-    if (priceEl) priceEl.value = registration.eventPrice;
+    // Set values if elements exist
+    if (fullNameEl) fullNameEl.value = customerData.fullName;
+    if (emailEl) emailEl.value = customerData.email;
+    if (phoneEl) phoneEl.value = customerData.phone;
+    if (organizationEl) organizationEl.value = customerData.organization;
+    if (eventEl) eventEl.value = customerData.eventName;
+    if (priceEl) priceEl.value = customerData.eventPrice;
 
     // Handle AGI membership
-    if (agiMemberEl && registration.customerInfo.agiMember) {
+    if (agiMemberEl && customerData.agiMember) {
       agiMemberEl.checked = true;
       if (agiMembershipGroupEl) agiMembershipGroupEl.style.display = "block";
     }
@@ -452,26 +225,6 @@ function showFallbackPayment(paymentData) {
   }
 }
 
-function showLoading() {
-  const container = document.querySelector(".registration-card");
-  if (container) {
-    container.innerHTML = `
-        <div class="loading-container">
-            <div class="loading-spinner"></div>
-            <p>Loading your registration details...</p>
-        </div>
-    `;
-  }
-}
-
-function hideLoading() {
-  // Loading will be replaced by form content
-}
-
-function showForm() {
-  // Form is already visible after loading
-}
-
 function showError(message) {
   const container = document.querySelector(".registration-card");
   if (container) {
@@ -501,26 +254,6 @@ style.textContent = `
         margin: 0;
         color: #2e7d32;
         font-weight: 600;
-    }
-    
-    .loading-container {
-        text-align: center;
-        padding: 60px 20px;
-    }
-    
-    .loading-spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #44b678;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 20px;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
     }
     
     .error-container {

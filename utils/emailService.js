@@ -363,9 +363,25 @@ async function sendPaymentFailure(registrationData, paymentData) {
 
 // Send payment reminder email
 async function sendPaymentReminder(registrationData) {
-  // Create registration link with pre-filled form data
+  // Create registration link with all customer details as GET parameters
   const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-  const registrationLink = `${baseUrl}/register-prefill?event=${registrationData.eventType}&ref=${registrationData.clientReference}`;
+
+  // Build URL with all customer details
+  const params = new URLSearchParams({
+    event: registrationData.eventType,
+    ref: registrationData.clientReference,
+    fullName: registrationData.customerInfo.fullName,
+    email: registrationData.customerInfo.email,
+    phone: registrationData.customerInfo.phone,
+    organization: registrationData.customerInfo.organization,
+    agiMember: registrationData.customerInfo.agiMember ? "true" : "false",
+    eventName: registrationData.eventName,
+    eventPrice: registrationData.eventPrice,
+    eventDate: registrationData.eventDate || "September 9, 2025",
+    eventLocation: registrationData.eventLocation || "Accra City Hotel",
+  });
+
+  const registrationLink = `${baseUrl}/register-prefill?${params.toString()}`;
 
   const emailData = {
     customerName: registrationData.customerInfo.fullName,
