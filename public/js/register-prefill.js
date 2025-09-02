@@ -1,9 +1,13 @@
 // Pre-filled registration page functionality
 document.addEventListener("DOMContentLoaded", function () {
+  console.log("DOM Content Loaded");
+
   // Get URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const eventType = urlParams.get("event");
   const clientReference = urlParams.get("ref");
+
+  console.log("URL Params:", { eventType, clientReference });
 
   if (!eventType || !clientReference) {
     showError(
@@ -12,8 +16,15 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
-  // Load customer data and populate form
-  loadCustomerData(clientReference, eventType);
+  // Wait a bit more to ensure all scripts are loaded
+  setTimeout(() => {
+    console.log("Loading customer data after delay");
+    console.log("Events config available:", !!window.events);
+    console.log("Events:", window.events);
+
+    // Load customer data and populate form
+    loadCustomerData(clientReference, eventType);
+  }, 200);
 });
 
 async function loadCustomerData(clientReference, eventType) {
@@ -57,110 +68,159 @@ async function loadCustomerData(clientReference, eventType) {
 }
 
 function populateForm(registration) {
-  // Populate customer information
-  document.getElementById("fullName").value =
-    registration.customerInfo.fullName;
-  document.getElementById("email").value = registration.customerInfo.email;
-  document.getElementById("phone").value = registration.customerInfo.phone;
-  document.getElementById("organization").value =
-    registration.customerInfo.organization;
+  try {
+    console.log("Populating form with registration:", registration);
 
-  // Handle AGI membership
-  if (registration.customerInfo.agiMember) {
-    document.getElementById("agiMember").checked = true;
-    document.getElementById("agiMembershipGroup").style.display = "block";
+    // Populate customer information
+    const fullNameEl = document.getElementById("fullName");
+    const emailEl = document.getElementById("email");
+    const phoneEl = document.getElementById("phone");
+    const organizationEl = document.getElementById("organization");
+    const eventEl = document.getElementById("event");
+    const priceEl = document.getElementById("price");
+    const agiMemberEl = document.getElementById("agiMember");
+    const agiMembershipGroupEl = document.getElementById("agiMembershipGroup");
+
+    console.log("Form elements found:", {
+      fullName: !!fullNameEl,
+      email: !!emailEl,
+      phone: !!phoneEl,
+      organization: !!organizationEl,
+      event: !!eventEl,
+      price: !!priceEl,
+      agiMember: !!agiMemberEl,
+      agiMembershipGroup: !!agiMembershipGroupEl,
+    });
+
+    if (fullNameEl) fullNameEl.value = registration.customerInfo.fullName;
+    if (emailEl) emailEl.value = registration.customerInfo.email;
+    if (phoneEl) phoneEl.value = registration.customerInfo.phone;
+    if (organizationEl)
+      organizationEl.value = registration.customerInfo.organization;
+    if (eventEl) eventEl.value = registration.eventName;
+    if (priceEl) priceEl.value = registration.eventPrice;
+
+    // Handle AGI membership
+    if (agiMemberEl && registration.customerInfo.agiMember) {
+      agiMemberEl.checked = true;
+      if (agiMembershipGroupEl) agiMembershipGroupEl.style.display = "block";
+    }
+
+    console.log("Form populated successfully");
+  } catch (error) {
+    console.error("Error populating form:", error);
+    showError("Error loading form data. Please refresh the page.");
   }
-
-  // Populate event information
-  document.getElementById("event").value = registration.eventName;
-  document.getElementById("price").value = registration.eventPrice;
 }
 
 function loadEventDetails(eventType) {
-  // Get event details from events config
-  const event = window.eventsConfig[eventType];
-  if (event) {
-    document.getElementById(
-      "eventTitle"
-    ).textContent = `Complete Registration - ${event.title}`;
-    document.getElementById("eventSubtitle").textContent = event.description;
-    document.getElementById(
-      "eventDetails"
-    ).textContent = `${event.date} • ${event.time} • ${event.location} • ${event.price}`;
+  try {
+    // Get event details from events config
+    if (window.events && window.events[eventType]) {
+      const event = window.events[eventType];
+      const eventTitleEl = document.getElementById("eventTitle");
+      const eventSubtitleEl = document.getElementById("eventSubtitle");
+      const eventDetailsEl = document.getElementById("eventDetails");
+
+      if (eventTitleEl) {
+        eventTitleEl.textContent = `Complete Registration - ${event.eventName}`;
+      }
+      if (eventSubtitleEl) {
+        eventSubtitleEl.textContent = event.subtitle;
+      }
+      if (eventDetailsEl) {
+        eventDetailsEl.textContent = event.details;
+      }
+    } else {
+      console.warn("Events config not loaded or event not found:", eventType);
+    }
+  } catch (error) {
+    console.error("Error loading event details:", error);
   }
 }
 
 // Form submission handler
-document
-  .getElementById("registrationForm")
-  .addEventListener("submit", async function (e) {
-    e.preventDefault();
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("registrationForm");
+  if (form) {
+    form.addEventListener("submit", handleFormSubmit);
+  }
+});
 
-    try {
-      // Show loading state
-      const submitBtn = document.querySelector(".btn-primary");
-      const originalText = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Processing...";
+async function handleFormSubmit(e) {
+  e.preventDefault();
 
-      // Get form data
-      const formData = {
-        fullName: document.getElementById("fullName").value,
-        email: document.getElementById("email").value,
-        phone: document.getElementById("phone").value,
-        organization: document.getElementById("organization").value,
-        agiMember: document.getElementById("agiMember").checked,
-      };
+  try {
+    // Show loading state
+    const submitBtn = document.querySelector(".btn-primary");
+    if (!submitBtn) return;
 
-      // Get event type from URL
-      const eventType = new URLSearchParams(window.location.search).get(
-        "event"
-      );
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Processing...";
 
-      // Initiate payment
-      const response = await fetch("/api/initiate-payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          formData,
-          eventType,
-        }),
-      });
+    // Get form data
+    const formData = {
+      fullName: document.getElementById("fullName")?.value || "",
+      email: document.getElementById("email")?.value || "",
+      phone: document.getElementById("phone")?.value || "",
+      organization: document.getElementById("organization")?.value || "",
+      agiMember: document.getElementById("agiMember")?.checked || false,
+    };
 
-      const result = await response.json();
+    // Get event type from URL
+    const eventType = new URLSearchParams(window.location.search).get("event");
 
-      if (result.success) {
-        // Show payment section
-        showPaymentSection(result);
-      } else {
-        throw new Error(result.error || "Failed to initiate payment");
-      }
-    } catch (error) {
-      console.error("Payment initiation error:", error);
-      alert("Error initiating payment: " + error.message);
+    // Initiate payment
+    const response = await fetch("/api/initiate-payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        formData,
+        eventType,
+      }),
+    });
 
-      // Reset button
-      const submitBtn = document.querySelector(".btn-primary");
+    const result = await response.json();
+
+    if (result.success) {
+      // Show payment section
+      showPaymentSection(result);
+    } else {
+      throw new Error(result.error || "Failed to initiate payment");
+    }
+  } catch (error) {
+    console.error("Payment initiation error:", error);
+    alert("Error initiating payment: " + error.message);
+
+    // Reset button
+    const submitBtn = document.querySelector(".btn-primary");
+    if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Proceed to Payment";
     }
-  });
+  }
+}
 
 function showPaymentSection(paymentData) {
   // Hide the form
-  document.getElementById("registrationForm").style.display = "none";
+  const form = document.getElementById("registrationForm");
+  if (form) form.style.display = "none";
 
   // Show payment section
   const paymentSection = document.getElementById("paymentSection");
-  paymentSection.style.display = "block";
+  if (paymentSection) paymentSection.style.display = "block";
 
   // Update payment details
-  document.getElementById("paymentAmount").textContent =
-    paymentData.amount || "N/A";
-  document.getElementById("paymentEvent").textContent =
-    paymentData.eventName || "N/A";
+  const paymentAmountEl = document.getElementById("paymentAmount");
+  const paymentEventEl = document.getElementById("paymentEvent");
+
+  if (paymentAmountEl)
+    paymentAmountEl.textContent = paymentData.amount || "N/A";
+  if (paymentEventEl)
+    paymentEventEl.textContent = paymentData.eventName || "N/A";
 
   // Initialize Hubtel checkout
   if (window.HubtelCheckout) {
@@ -193,7 +253,8 @@ function initializeHubtelCheckout(paymentData) {
 
 function showFallbackPayment(paymentData) {
   const iframeContainer = document.getElementById("hubtel-checkout-iframe");
-  iframeContainer.innerHTML = `
+  if (iframeContainer) {
+    iframeContainer.innerHTML = `
         <div class="fallback-payment">
             <h4>Payment Gateway</h4>
             <p>You will be redirected to the secure payment gateway to complete your transaction.</p>
@@ -204,16 +265,19 @@ function showFallbackPayment(paymentData) {
             </button>
         </div>
     `;
+  }
 }
 
 function showLoading() {
   const container = document.querySelector(".registration-card");
-  container.innerHTML = `
+  if (container) {
+    container.innerHTML = `
         <div class="loading-container">
             <div class="loading-spinner"></div>
             <p>Loading your registration details...</p>
         </div>
     `;
+  }
 }
 
 function hideLoading() {
@@ -226,13 +290,15 @@ function showForm() {
 
 function showError(message) {
   const container = document.querySelector(".registration-card");
-  container.innerHTML = `
+  if (container) {
+    container.innerHTML = `
         <div class="error-container">
             <h2>❌ Error</h2>
             <p>${message}</p>
             <button onclick="window.history.back()" class="btn-secondary">Go Back</button>
         </div>
     `;
+  }
 }
 
 // Add some CSS for the new elements
