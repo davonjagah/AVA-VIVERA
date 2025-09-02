@@ -21,6 +21,29 @@
                 <h1 id="eventTitle">Register for Event</h1>
                 <p class="event-subtitle" id="eventSubtitle">Event Details</p>
                 <p class="event-details" id="eventDetails">Date • Time • Location • Price</p>
+                
+                <!-- Event Countdown Timer -->
+                <div class="event-countdown" id="eventCountdown" style="display: none;">
+                    <h4 id="countdownTitle">Countdown to Event</h4>
+                    <div class="countdown-timer">
+                        <div class="countdown-item">
+                            <span class="countdown-number" id="eventDays">00</span>
+                            <span class="countdown-label">Days</span>
+                        </div>
+                        <div class="countdown-item">
+                            <span class="countdown-number" id="eventHours">00</span>
+                            <span class="countdown-label">Hours</span>
+                        </div>
+                        <div class="countdown-item">
+                            <span class="countdown-number" id="eventMinutes">00</span>
+                            <span class="countdown-label">Minutes</span>
+                        </div>
+                        <div class="countdown-item">
+                            <span class="countdown-number" id="eventSeconds">00</span>
+                            <span class="countdown-label">Seconds</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <form class="registration-form" id="registrationForm">
@@ -102,5 +125,71 @@
     <script src="/js/hubtel-sdk.bundle.js"></script>
     <script src="/js/events-config.js"></script>
     <script src="/js/register.js"></script>
+    
+    <!-- Countdown Timer JavaScript -->
+    <script>
+        // Event dates mapping
+        const eventDates = {
+            sme: new Date('September 8, 2025 09:00:00').getTime(),
+            ceo: new Date('September 9, 2025 09:00:00').getTime(),
+            wealth: new Date('September 12, 2025 10:00:00').getTime()
+        };
+
+        // Event names for countdown titles
+        const eventNames = {
+            sme: 'SMEs Connect',
+            ceo: 'CEO Roundtable',
+            wealth: 'Wealth Creation Masterclass'
+        };
+
+        // Get event type from URL
+        function getEventType() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('event');
+        }
+
+        // Update countdown function
+        function updateEventCountdown() {
+            const eventType = getEventType();
+            if (!eventType || !eventDates[eventType]) return;
+
+            const targetDate = eventDates[eventType];
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                // Event has passed
+                document.getElementById('eventDays').textContent = '00';
+                document.getElementById('eventHours').textContent = '00';
+                document.getElementById('eventMinutes').textContent = '00';
+                document.getElementById('eventSeconds').textContent = '00';
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById('eventDays').textContent = days.toString().padStart(2, '0');
+            document.getElementById('eventHours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('eventMinutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('eventSeconds').textContent = seconds.toString().padStart(2, '0');
+        }
+
+        // Initialize countdown when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const eventType = getEventType();
+            if (eventType && eventDates[eventType]) {
+                // Show countdown and set title
+                document.getElementById('eventCountdown').style.display = 'block';
+                document.getElementById('countdownTitle').textContent = `Countdown to ${eventNames[eventType]}`;
+                
+                // Start countdown
+                updateEventCountdown();
+                setInterval(updateEventCountdown, 1000);
+            }
+        });
+    </script>
 </body>
 </html> 

@@ -188,9 +188,46 @@ function showPaymentSection(paymentData) {
   }
 }
 
+// Initialize the Hubtel Checkout SDK
+let checkout = null;
+
+// Initialize SDK when page loads
+document.addEventListener("DOMContentLoaded", function () {
+  // Function to try loading SDK
+  function tryLoadSDK() {
+    try {
+      if (window.CheckoutSdk) {
+        checkout = new window.CheckoutSdk();
+        return true;
+      } else if (window.HubtelCheckout) {
+        checkout = window.HubtelCheckout;
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Try immediately
+  if (!tryLoadSDK()) {
+    // Retry once after a short delay
+    setTimeout(() => {
+      tryLoadSDK();
+    }, 500);
+  }
+});
+
 function initializeHubtelCheckout(paymentData) {
   try {
-    const checkout = new window.HubtelCheckout({
+    if (!checkout) {
+      console.error("Hubtel SDK not initialized.");
+      showFallbackPayment(paymentData);
+      return;
+    }
+
+    const checkoutInstance = new checkout({
       merchantId: paymentData.merchantId || "11684",
       customerEmail: paymentData.customerEmail,
       customerMsisdn: paymentData.customerMsisdn,
@@ -201,7 +238,7 @@ function initializeHubtelCheckout(paymentData) {
       returnUrl: `${window.location.origin}/verify/${paymentData.clientReference}`,
     });
 
-    checkout.open();
+    checkoutInstance.open();
   } catch (error) {
     console.error("Hubtel checkout error:", error);
     showFallbackPayment(paymentData);

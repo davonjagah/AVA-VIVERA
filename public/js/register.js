@@ -203,9 +203,16 @@ function showPaymentSection() {
   const eventType = getEventType();
   const eventData = window.events[eventType];
 
+  console.log("showPaymentSection called");
+  console.log("Event Type:", eventType);
+  console.log("Event Data:", eventData);
+
   if (eventData) {
-    document.getElementById("paymentAmount").textContent = eventData.price;
-    document.getElementById("paymentEvent").textContent = eventData.eventName;
+    const paymentAmount = document.getElementById("paymentAmount");
+    const paymentEvent = document.getElementById("paymentEvent");
+
+    if (paymentAmount) paymentAmount.textContent = eventData.price;
+    if (paymentEvent) paymentEvent.textContent = eventData.eventName;
   }
 
   // Scroll to payment section
@@ -250,6 +257,13 @@ function showCheckoutLink(checkoutUrl, clientReference) {
     clientReference,
   });
 
+  // Get event data for payment details
+  const eventType = getEventType();
+  const eventData = window.events[eventType];
+
+  console.log("Event Type:", eventType);
+  console.log("Event Data:", eventData);
+
   const paymentSection = document.getElementById("paymentSection");
   paymentSection.innerHTML = `
     <div class="checkout-container">
@@ -260,9 +274,20 @@ function showCheckoutLink(checkoutUrl, clientReference) {
         }</strong></p>
       </div>
       
+      <div class="payment-details">
+        <div class="detail-item">
+          <span class="label">Amount:</span>
+          <span class="value">${eventData ? eventData.price : "N/A"}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Event:</span>
+          <span class="value">${eventData ? eventData.eventName : "N/A"}</span>
+        </div>
+      </div>
+      
       <div class="checkout-iframe-container">
         <iframe 
-          src="${checkoutUrl}" 
+          src="${checkoutUrl || "#"}" 
           frameborder="0" 
           width="100%" 
           height="600px"
@@ -282,10 +307,12 @@ function showCheckoutLink(checkoutUrl, clientReference) {
         </ul>
         
         <div class="checkout-actions">
-          <a href="${checkoutUrl}" target="_blank" class="btn-secondary">
+          <a href="${checkoutUrl || "#"}" target="_blank" class="btn-secondary">
             🔗 Open in New Tab
           </a>
-          <button onclick="copyToClipboard('${checkoutUrl}')" class="btn-secondary">
+          <button onclick="copyToClipboard('${
+            checkoutUrl || ""
+          }')" class="btn-secondary">
             📋 Copy Link
           </button>
         </div>
