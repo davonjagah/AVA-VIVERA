@@ -279,13 +279,36 @@ const emailTemplates = {
 
 // Send email function
 async function sendEmail(to, template, data) {
+  console.log("📧 sendEmail function called");
+  console.log("📧 To:", to);
+  console.log("📧 Template:", template);
+  console.log("📧 Data keys:", Object.keys(data));
+
   try {
     // Verify transporter configuration
     if (!process.env.EMAIL_PASSWORD) {
+      console.error("❌ EMAIL_PASSWORD environment variable is not set");
       throw new Error("EMAIL_PASSWORD environment variable is not set");
     }
 
+    console.log("📧 Environment variables check:");
+    console.log(
+      "  - EMAIL_USER:",
+      process.env.EMAIL_USER || "Not set (using default)"
+    );
+    console.log(
+      "  - EMAIL_PASSWORD:",
+      process.env.EMAIL_PASSWORD ? "Set" : "Not set"
+    );
+    console.log(
+      "  - CLOUDINARY_CLOUD_NAME:",
+      process.env.CLOUDINARY_CLOUD_NAME ? "Set" : "Not set"
+    );
+
     const emailContent = emailTemplates[template](data);
+    console.log("📧 Email template generated successfully");
+    console.log("📧 Subject:", emailContent.subject);
+    console.log("📧 HTML length:", emailContent.html.length, "characters");
 
     const mailOptions = {
       from: `"Value Creation Summit" <${
@@ -296,10 +319,34 @@ async function sendEmail(to, template, data) {
       html: emailContent.html,
     };
 
+    console.log("📧 Mail options prepared:");
+    console.log("  - From:", mailOptions.from);
+    console.log("  - To:", mailOptions.to);
+    console.log("  - Subject:", mailOptions.subject);
+
+    console.log("📧 Attempting to send email via SMTP...");
+    console.log("📧 SMTP Host: mail.accessviewafrica.com");
+    console.log("📧 SMTP Port: 465");
+    console.log("📧 SMTP Secure: true");
+
     const result = await transporter.sendMail(mailOptions);
+
+    console.log("✅ Email sent successfully via SMTP!");
+    console.log("✅ SMTP Response:", result);
+    console.log("✅ Message ID:", result.messageId);
+    console.log("✅ Accepted recipients:", result.accepted);
+    console.log("✅ Rejected recipients:", result.rejected);
+
     return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error("Email sending failed:", error);
+    console.error("❌ Email sending failed:");
+    console.error("❌ Error message:", error.message);
+    console.error("❌ Error code:", error.code);
+    console.error("❌ Error command:", error.command);
+    console.error("❌ Error response:", error.response);
+    console.error("❌ Error responseCode:", error.responseCode);
+    console.error("❌ Full error object:", error);
+
     return { success: false, error: error.message };
   }
 }
@@ -363,40 +410,88 @@ async function sendPaymentFailure(registrationData, paymentData) {
 
 // Send payment reminder email
 async function sendPaymentReminder(registrationData) {
-  // Create registration link with all customer details as GET parameters
-  const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-
-  // Build URL with all customer details
-  const params = new URLSearchParams({
-    event: registrationData.eventType,
-    ref: registrationData.clientReference,
-    fullName: registrationData.customerInfo.fullName,
-    email: registrationData.customerInfo.email,
-    phone: registrationData.customerInfo.phone,
-    organization: registrationData.customerInfo.organization,
-    agiMember: registrationData.customerInfo.agiMember ? "true" : "false",
+  console.log("📧 Starting payment reminder email process...");
+  console.log("📧 Registration data:", {
+    clientReference: registrationData.clientReference,
+    customerName: registrationData.customerInfo.fullName,
+    customerEmail: registrationData.customerInfo.email,
+    eventType: registrationData.eventType,
     eventName: registrationData.eventName,
-    eventPrice: registrationData.eventPrice,
-    eventDate: registrationData.eventDate || "September 9, 2025",
-    eventLocation: registrationData.eventLocation || "Accra City Hotel",
+    paymentStatus: registrationData.paymentStatus,
   });
 
-  const registrationLink = `${baseUrl}/register-prefill?${params.toString()}`;
+  try {
+    // Create registration link with all customer details as GET parameters
+    const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+    console.log("📧 Base URL:", baseUrl);
 
-  const emailData = {
-    customerName: registrationData.customerInfo.fullName,
-    eventName: registrationData.eventName,
-    eventDate: registrationData.eventDate || "September 9, 2025",
-    eventLocation: registrationData.eventLocation || "Accra City Hotel",
-    eventPrice: registrationData.eventPrice,
-    registrationLink: registrationLink,
-  };
+    // Build URL with all customer details
+    const params = new URLSearchParams({
+      event: registrationData.eventType,
+      ref: registrationData.clientReference,
+      fullName: registrationData.customerInfo.fullName,
+      email: registrationData.customerInfo.email,
+      phone: registrationData.customerInfo.phone,
+      organization: registrationData.customerInfo.organization,
+      agiMember: registrationData.customerInfo.agiMember ? "true" : "false",
+      eventName: registrationData.eventName,
+      eventPrice: registrationData.eventPrice,
+      eventDate: registrationData.eventDate || "September 9, 2025",
+      eventLocation: registrationData.eventLocation || "Accra City Hotel",
+    });
 
-  return await sendEmail(
-    registrationData.customerInfo.email,
-    "paymentReminder",
-    emailData
-  );
+    const registrationLink = `${baseUrl}/register-prefill?${params.toString()}`;
+    console.log("📧 Generated registration link:", registrationLink);
+
+    const emailData = {
+      customerName: registrationData.customerInfo.fullName,
+      eventName: registrationData.eventName,
+      eventDate: registrationData.eventDate || "September 9, 2025",
+      eventLocation: registrationData.eventLocation || "Accra City Hotel",
+      eventPrice: registrationData.eventPrice,
+      registrationLink: registrationLink,
+    };
+
+    console.log("📧 Email data prepared:", emailData);
+    console.log(
+      "📧 Attempting to send email to:",
+      registrationData.customerInfo.email
+    );
+
+    // Check email configuration
+    console.log("📧 Email configuration check:");
+    console.log("  - EMAIL_USER:", process.env.EMAIL_USER ? "Set" : "Not set");
+    console.log(
+      "  - EMAIL_PASSWORD:",
+      process.env.EMAIL_PASSWORD ? "Set" : "Not set"
+    );
+    console.log("  - SMTP Host: mail.accessviewafrica.com");
+    console.log("  - SMTP Port: 465");
+    console.log("  - SMTP Secure: true");
+
+    const result = await sendEmail(
+      registrationData.customerInfo.email,
+      "paymentReminder",
+      emailData
+    );
+
+    console.log("📧 Email send result:", result);
+
+    if (result.success) {
+      console.log("✅ Payment reminder email sent successfully!");
+      console.log("✅ Message ID:", result.messageId);
+      console.log("✅ Sent to:", registrationData.customerInfo.email);
+    } else {
+      console.error("❌ Failed to send payment reminder email");
+      console.error("❌ Error:", result.error);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("❌ Error in sendPaymentReminder function:", error);
+    console.error("❌ Error stack:", error.stack);
+    return { success: false, error: error.message };
+  }
 }
 
 module.exports = {

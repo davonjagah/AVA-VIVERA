@@ -834,15 +834,24 @@ router.get("/pending-registrations", async (req, res) => {
 
 // Send payment reminder email
 router.post("/send-payment-reminder", async (req, res) => {
+  console.log("📧 API: Payment reminder request received");
+  console.log("📧 Request body:", req.body);
+
   try {
     const { clientReference } = req.body;
 
     if (!clientReference) {
+      console.error("❌ API: Missing clientReference in request");
       return res.status(400).json({
         success: false,
         error: "clientReference is required",
       });
     }
+
+    console.log(
+      "📧 API: Looking up registration for clientReference:",
+      clientReference
+    );
 
     const db = await getDatabase();
     const registrations = db.collection("registrations");
@@ -851,25 +860,49 @@ router.post("/send-payment-reminder", async (req, res) => {
     const registration = await registrations.findOne({ clientReference });
 
     if (!registration) {
+      console.error(
+        "❌ API: Registration not found for clientReference:",
+        clientReference
+      );
       return res.status(404).json({
         success: false,
         error: "Registration not found",
       });
     }
 
+    console.log("📧 API: Registration found:", {
+      clientReference: registration.clientReference,
+      customerName: registration.customerInfo.fullName,
+      customerEmail: registration.customerInfo.email,
+      eventType: registration.eventType,
+      paymentStatus: registration.paymentStatus,
+    });
+
     if (registration.paymentStatus !== "pending") {
+      console.error(
+        "❌ API: Cannot send reminder - payment status is not pending:",
+        registration.paymentStatus
+      );
       return res.status(400).json({
         success: false,
         error: "Can only send reminders for pending registrations",
       });
     }
 
+    console.log(
+      "📧 API: Payment status is pending, proceeding to send reminder"
+    );
+
     // Send the reminder email
+    console.log("📧 API: Calling sendPaymentReminder function...");
     const emailResult = await sendPaymentReminder(registration);
+    console.log("📧 API: sendPaymentReminder result:", emailResult);
 
     if (emailResult.success) {
+      console.log("✅ API: Email sent successfully, updating database...");
+
       // Update the registration to track reminder sent
-      await registrations.updateOne(
+      const updateResult = await registrations.updateOne(
         { clientReference },
         {
           $set: {
@@ -879,13 +912,19 @@ router.post("/send-payment-reminder", async (req, res) => {
         }
       );
 
+      console.log("✅ API: Database updated successfully:", updateResult);
+
       res.json({
         success: true,
         message: "Payment reminder sent successfully",
         emailResult,
         clientReference,
+        databaseUpdate: updateResult,
       });
     } else {
+      console.error("❌ API: Failed to send payment reminder");
+      console.error("❌ API: Email error:", emailResult.error);
+
       res.status(500).json({
         success: false,
         error: "Failed to send payment reminder",
@@ -893,10 +932,13 @@ router.post("/send-payment-reminder", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error sending payment reminder:", error);
+    console.error("❌ API: Error in send-payment-reminder endpoint:", error);
+    console.error("❌ API: Error stack:", error.stack);
+
     res.status(500).json({
       success: false,
       error: "Failed to send payment reminder",
+      details: error.message,
     });
   }
 });
