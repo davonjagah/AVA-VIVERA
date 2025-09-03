@@ -572,23 +572,7 @@
     background: #fff;
 }
 
-/* Prefill Notice Styles */
-.prefill-notice {
-    background: rgba(76, 175, 80, 0.1);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    border-radius: 8px;
-    padding: 15px;
-    margin: 20px 0;
-    text-align: center;
-    backdrop-filter: blur(5px);
-}
 
-.prefill-notice p {
-    margin: 0;
-    color: #4caf50;
-    font-weight: 600;
-    font-size: 0.95rem;
-}
 
 /* Loading and Error States */
 .loading-container {

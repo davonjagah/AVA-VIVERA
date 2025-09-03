@@ -79,6 +79,52 @@ function loadEventData() {
       if (agiCheckbox) agiCheckbox.checked = false;
     }
   }
+
+  // Pre-fill form fields from URL parameters if they exist
+  prefillFormFromURL();
+}
+
+// Pre-fill form fields from URL parameters
+function prefillFormFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+
+  // Get customer details from URL parameters
+  const fullName = urlParams.get("fullName");
+  const email = urlParams.get("email");
+  const phone = urlParams.get("phone");
+  const organization = urlParams.get("organization");
+  const agiMember = urlParams.get("agiMember");
+
+  // Pre-fill form fields if parameters exist
+  if (fullName) {
+    const fullNameField = document.getElementById("fullName");
+    if (fullNameField) fullNameField.value = fullName;
+  }
+
+  if (email) {
+    const emailField = document.getElementById("email");
+    if (emailField) emailField.value = email;
+  }
+
+  if (phone) {
+    const phoneField = document.getElementById("phone");
+    if (phoneField) phoneField.value = phone;
+  }
+
+  if (organization) {
+    const organizationField = document.getElementById("organization");
+    if (organizationField) organizationField.value = organization;
+  }
+
+  if (agiMember === "true") {
+    const agiMemberField = document.getElementById("agiMember");
+    if (agiMemberField) {
+      agiMemberField.checked = true;
+      // Show AGI membership group if it's hidden
+      const agiMembershipGroup = document.getElementById("agiMembershipGroup");
+      if (agiMembershipGroup) agiMembershipGroup.style.display = "block";
+    }
+  }
 }
 
 // Handle form submission

@@ -440,7 +440,7 @@ async function sendPaymentReminder(registrationData) {
       eventLocation: registrationData.eventLocation || "Accra City Hotel",
     });
 
-    const registrationLink = `${baseUrl}/register-prefill?${params.toString()}`;
+    const registrationLink = `${baseUrl}/register?${params.toString()}`;
     console.log("📧 Generated registration link:", registrationLink);
 
     const emailData = {

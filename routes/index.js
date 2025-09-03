@@ -12,11 +12,6 @@ router.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "views", "register.html"));
 });
 
-// Pre-filled registration page route
-router.get("/register-prefill", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "views", "register-prefill.html"));
-});
-
 // Admin page route
 router.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "views", "admin.html"));
