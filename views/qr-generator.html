@@ -5,16 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event QR Code Generator</title>
     <link rel="stylesheet" href="/css/styles.css">
-    <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- Using QR.js - a lightweight QR code library -->
+    <script src="https://cdn.jsdelivr.net/npm/qr.js@0.0.0/dist/qr.min.js"></script>
     <script>
-        // Fallback QRCode library loading
-        if (typeof QRCode === 'undefined') {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-            fallbackScript.onerror = function() {
-                console.error('Failed to load QRCode library from both CDNs');
-            };
-            document.head.appendChild(fallbackScript);
+        // Fallback QR code generator using Google Charts API
+        function generateFallbackQR(url, size = 200) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Create an image element to load the QR code from Google Charts
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            return new Promise((resolve, reject) => {
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0, size, size);
+                    resolve(canvas);
+                };
+                img.onerror = function() {
+                    reject(new Error('Failed to load fallback QR code'));
+                };
+                
+                // Use Google Charts API as fallback
+                const encodedUrl = encodeURIComponent(url);
+                img.src = `https://chart.googleapis.com/chart?chs=${size}x${size}&cht=qr&chl=${encodedUrl}`;
+            });
         }
     </script>
     <style>
@@ -255,23 +272,60 @@
             return qrContainer;
         }
 
-        // Generate QR code canvas
+        // Generate QR code canvas using QR.js with fallback
         async function generateQRCanvas(url, containerId) {
             try {
-                // Check if QRCode library is loaded
-                if (typeof QRCode === 'undefined') {
-                    throw new Error('QRCode library not loaded');
-                }
-
-                const canvas = document.createElement('canvas');
-                await QRCode.toCanvas(canvas, url, {
-                    width: 200,
-                    margin: 2,
-                    color: {
-                        dark: '#000000',
-                        light: '#FFFFFF'
+                let canvas;
+                
+                // Try QR.js library first
+                if (typeof QR !== 'undefined') {
+                    canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set canvas size
+                    const size = 200;
+                    canvas.width = size;
+                    canvas.height = size;
+                    
+                    // Generate QR code
+                    const qr = new QR({
+                        content: url,
+                        padding: 4,
+                        width: size,
+                        height: size,
+                        color: {
+                            dark: '#000000',
+                            light: '#FFFFFF'
+                        }
+                    });
+                    
+                    // Draw QR code to canvas
+                    const qrData = qr.qrcode.modules;
+                    const moduleSize = size / qrData.length;
+                    
+                    // Clear canvas with white background
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // Draw QR code modules
+                    ctx.fillStyle = '#000000';
+                    for (let row = 0; row < qrData.length; row++) {
+                        for (let col = 0; col < qrData[row].length; col++) {
+                            if (qrData[row][col]) {
+                                ctx.fillRect(
+                                    col * moduleSize,
+                                    row * moduleSize,
+                                    moduleSize,
+                                    moduleSize
+                                );
+                            }
+                        }
                     }
-                });
+                } else {
+                    // Use fallback Google Charts API
+                    console.log('Using fallback QR code generation');
+                    canvas = await generateFallbackQR(url, 200);
+                }
                 
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
@@ -327,20 +381,53 @@
             const mainUrl = "https://valuecreationsummit.accessviewafrica.com/";
             
             try {
-                // Check if QRCode library is loaded
-                if (typeof QRCode === 'undefined') {
-                    throw new Error('QRCode library not loaded');
+                // Check if QR library is loaded
+                if (typeof QR === 'undefined') {
+                    throw new Error('QR library not loaded');
                 }
 
                 const canvas = document.createElement('canvas');
-                await QRCode.toCanvas(canvas, mainUrl, {
-                    width: 300,
-                    margin: 2,
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size
+                const size = 300;
+                canvas.width = size;
+                canvas.height = size;
+                
+                // Generate QR code
+                const qr = new QR({
+                    content: mainUrl,
+                    padding: 4,
+                    width: size,
+                    height: size,
                     color: {
                         dark: '#000000',
                         light: '#FFFFFF'
                     }
                 });
+                
+                // Draw QR code to canvas
+                const qrData = qr.qrcode.modules;
+                const moduleSize = size / qrData.length;
+                
+                // Clear canvas with white background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, size, size);
+                
+                // Draw QR code modules
+                ctx.fillStyle = '#000000';
+                for (let row = 0; row < qrData.length; row++) {
+                    for (let col = 0; col < qrData[row].length; col++) {
+                        if (qrData[row][col]) {
+                            ctx.fillRect(
+                                col * moduleSize,
+                                row * moduleSize,
+                                moduleSize,
+                                moduleSize
+                            );
+                        }
+                    }
+                }
 
                 // Create modal to show combined QR
                 const modal = document.createElement('div');
@@ -423,10 +510,10 @@
             window.combinedQRCanvas = null;
         }
 
-        // Wait for QRCode library to load
+        // Wait for QR library to load
         function waitForQRCode() {
             return new Promise((resolve, reject) => {
-                if (typeof QRCode !== 'undefined') {
+                if (typeof QR !== 'undefined') {
                     resolve();
                     return;
                 }
@@ -436,12 +523,12 @@
                 
                 const checkInterval = setInterval(() => {
                     attempts++;
-                    if (typeof QRCode !== 'undefined') {
+                    if (typeof QR !== 'undefined') {
                         clearInterval(checkInterval);
                         resolve();
                     } else if (attempts >= maxAttempts) {
                         clearInterval(checkInterval);
-                        reject(new Error('QRCode library failed to load'));
+                        reject(new Error('QR library failed to load'));
                     }
                 }, 100);
             });
@@ -450,12 +537,9 @@
         // Initialize QR code generation
         async function initializeQRCodes() {
             const qrGrid = document.getElementById('qrGrid');
-            qrGrid.innerHTML = '<div class="loading">Loading QR code library...</div>';
+            qrGrid.innerHTML = '<div class="loading">Generating QR codes...</div>';
 
             try {
-                // Wait for QRCode library to be available
-                await waitForQRCode();
-                
                 qrGrid.innerHTML = '';
                 
                 for (const [eventId, eventData] of Object.entries(events)) {
@@ -467,7 +551,7 @@
                 }
             } catch (error) {
                 console.error('Failed to initialize QR codes:', error);
-                qrGrid.innerHTML = '<div class="error">Failed to load QR code library. Please refresh the page.</div>';
+                qrGrid.innerHTML = '<div class="error">Failed to generate QR codes. Please refresh the page.</div>';
             }
         }
 
