@@ -7,6 +7,7 @@ const {
   sendPaymentFailure,
   sendPaymentReminder,
 } = require("../utils/emailService");
+const QRCode = require("qrcode");
 
 // Get all events
 router.get("/events", (req, res) => {
@@ -1205,6 +1206,180 @@ router.get("/verify/:clientReference", async (req, res) => {
       error: error.message,
       message: "Verification failed",
     });
+  }
+});
+
+// Generate QR code for event registration
+router.get("/qr-code/:eventType", async (req, res) => {
+  try {
+    const { eventType } = req.params;
+    const { size = 200, format = "png" } = req.query;
+
+    // Validate event type
+    if (!events[eventType]) {
+      return res.status(400).json({ error: "Invalid event type" });
+    }
+
+    // Generate registration URL
+    const baseUrl =
+      process.env.BASE_URL ||
+      "https://valuecreationsummit.accessviewafrica.com";
+    const registrationUrl = `${baseUrl}/register?event=${eventType}`;
+
+    // Generate QR code
+    const qrCodeBuffer = await QRCode.toBuffer(registrationUrl, {
+      type: `image/${format}`,
+      width: parseInt(size),
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
+
+    // Set appropriate headers
+    res.set({
+      "Content-Type": `image/${format}`,
+      "Content-Length": qrCodeBuffer.length,
+      "Cache-Control": "public, max-age=3600", // Cache for 1 hour
+    });
+
+    res.send(qrCodeBuffer);
+  } catch (error) {
+    console.error("QR code generation failed:", error);
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
+});
+
+// Generate QR code for main page
+router.get("/qr-code", async (req, res) => {
+  try {
+    const { size = 200, format = "png" } = req.query;
+
+    // Generate main page URL
+    const baseUrl =
+      process.env.BASE_URL ||
+      "https://valuecreationsummit.accessviewafrica.com";
+    const mainUrl = `${baseUrl}/`;
+
+    // Generate QR code
+    const qrCodeBuffer = await QRCode.toBuffer(mainUrl, {
+      type: `image/${format}`,
+      width: parseInt(size),
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
+
+    // Set appropriate headers
+    res.set({
+      "Content-Type": `image/${format}`,
+      "Content-Length": qrCodeBuffer.length,
+      "Cache-Control": "public, max-age=3600", // Cache for 1 hour
+    });
+
+    res.send(qrCodeBuffer);
+  } catch (error) {
+    console.error("QR code generation failed:", error);
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
+});
+
+// Get QR code data as base64 for frontend use
+router.get("/qr-data/:eventType", async (req, res) => {
+  try {
+    const { eventType } = req.params;
+    const { size = 200 } = req.query;
+
+    // Validate event type
+    if (!events[eventType]) {
+      return res.status(400).json({ error: "Invalid event type" });
+    }
+
+    // Generate registration URL
+    const baseUrl =
+      process.env.BASE_URL ||
+      "https://valuecreationsummit.accessviewafrica.com";
+    const registrationUrl = `${baseUrl}/register?event=${eventType}`;
+
+    // Generate QR code as base64
+    const qrCodeDataURL = await QRCode.toDataURL(registrationUrl, {
+      width: parseInt(size),
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
+
+    res.json({
+      success: true,
+      eventType,
+      url: registrationUrl,
+      qrCode: qrCodeDataURL,
+      eventData: events[eventType],
+    });
+  } catch (error) {
+    console.error("QR code generation failed:", error);
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
+});
+
+// Get all QR codes data
+router.get("/qr-codes", async (req, res) => {
+  try {
+    const { size = 200 } = req.query;
+    const baseUrl =
+      process.env.BASE_URL ||
+      "https://valuecreationsummit.accessviewafrica.com";
+
+    const qrCodes = [];
+
+    // Generate QR codes for all events
+    for (const [eventType, eventData] of Object.entries(events)) {
+      const registrationUrl = `${baseUrl}/register?event=${eventType}`;
+
+      const qrCodeDataURL = await QRCode.toDataURL(registrationUrl, {
+        width: parseInt(size),
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
+      });
+
+      qrCodes.push({
+        eventType,
+        eventData,
+        url: registrationUrl,
+        qrCode: qrCodeDataURL,
+      });
+    }
+
+    // Generate main page QR code
+    const mainUrl = `${baseUrl}/`;
+    const mainQRCode = await QRCode.toDataURL(mainUrl, {
+      width: parseInt(size),
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
+
+    res.json({
+      success: true,
+      events: qrCodes,
+      mainPage: {
+        url: mainUrl,
+        qrCode: mainQRCode,
+      },
+    });
+  } catch (error) {
+    console.error("QR codes generation failed:", error);
+    res.status(500).json({ error: "Failed to generate QR codes" });
   }
 });
 
