@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event QR Code Generator</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        .qr-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .qr-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .qr-header h1 {
+            color: #44b678;
+            margin-bottom: 10px;
+        }
+        
+        .qr-header p {
+            color: #d0d0d0;
+            font-size: 1.1em;
+        }
+        
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .qr-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .qr-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(68, 182, 120, 0.2);
+        }
+        
+        .qr-card h3 {
+            color: #44b678;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .qr-card .event-details {
+            color: #d0d0d0;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        
+        .qr-code-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: inline-block;
+        }
+        
+        .qr-code-container canvas {
+            border-radius: 5px;
+        }
+        
+        .qr-url {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 0.8em;
+            color: #44b678;
+            word-break: break-all;
+        }
+        
+        .qr-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .qr-btn {
+            background: linear-gradient(135deg, #44b678, #2d8659);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .qr-btn:hover {
+            background: linear-gradient(135deg, #2d8659, #44b678);
+            transform: translateY(-2px);
+        }
+        
+        .qr-btn.secondary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .qr-btn.secondary:hover {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+        }
+        
+        .bulk-actions {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .bulk-actions h3 {
+            color: #44b678;
+            margin-bottom: 20px;
+        }
+        
+        .bulk-actions p {
+            color: #d0d0d0;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            color: #44b678;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .qr-container {
+                padding: 10px;
+            }
+            
+            .qr-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .qr-actions {
+                flex-direction: column;
+            }
+            
+            .qr-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-logo-container">
+            <img src="/images/logo.png" alt="Event Logo 1" class="header-logo">
+            <img src="/images/vivera.png" alt="Event Logo 2" class="header-logo">
+        </div>
+    </header>
+
+    <div class="qr-container">
+        <div class="qr-header">
+            <h1>📱 Event QR Code Generator</h1>
+            <p>Generate QR codes for easy access to event registration pages</p>
+        </div>
+
+        <div class="qr-grid" id="qrGrid">
+            <div class="loading">Generating QR codes...</div>
+        </div>
+
+        <div class="bulk-actions">
+            <h3>📦 Bulk Actions</h3>
+            <p>Download all QR codes as a ZIP file or generate a combined QR code</p>
+            <div class="qr-actions">
+                <button class="qr-btn" onclick="downloadAllQRCodes()">📥 Download All QR Codes</button>
+                <button class="qr-btn secondary" onclick="generateCombinedQR()">🔗 Generate Combined QR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Event configuration
+        const events = {
+            sme: {
+                title: "SMEs Connect",
+                subtitle: "Beyond Profit - Building Legacies",
+                details: "September 8, 2025 • 9:00 AM • Accra City Hotel • 1,500 GHS",
+                url: "https://valuecreationsummit.accessviewafrica.com/register?event=sme"
+            },
+            ceo: {
+                title: "CEO Roundtable",
+                subtitle: "Lead the Business, Scale to Legacy",
+                details: "September 9, 2025 • 9:00 AM - 3:00 PM • Accra City Hotel • 2,500 GHS",
+                url: "https://valuecreationsummit.accessviewafrica.com/register?event=ceo"
+            },
+            wealth: {
+                title: "Wealth Creation Masterclass",
+                subtitle: "Wealth Creation Strategies Masterclass",
+                details: "September 12, 2025 • 10:00 AM • Accra City Hotel • 1,200 GHS",
+                url: "https://valuecreationsummit.accessviewafrica.com/register?event=wealth"
+            }
+        };
+
+        // Generate QR code for a single event
+        async function generateQRCode(eventId, eventData) {
+            const qrContainer = document.createElement('div');
+            qrContainer.className = 'qr-card';
+            qrContainer.innerHTML = `
+                <h3>${eventData.title}</h3>
+                <div class="event-details">${eventData.subtitle}</div>
+                <div class="event-details">${eventData.details}</div>
+                <div class="qr-code-container" id="qr-${eventId}">
+                    <div class="loading">Generating QR code...</div>
+                </div>
+                <div class="qr-url">${eventData.url}</div>
+                <div class="qr-actions">
+                    <button class="qr-btn" onclick="downloadQRCode('${eventId}', '${eventData.title}')">📥 Download PNG</button>
+                    <a href="${eventData.url}" target="_blank" class="qr-btn secondary">🔗 Open Registration</a>
+                </div>
+            `;
+
+            return qrContainer;
+        }
+
+        // Generate QR code canvas
+        async function generateQRCanvas(url, containerId) {
+            try {
+                const canvas = document.createElement('canvas');
+                await QRCode.toCanvas(canvas, url, {
+                    width: 200,
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+                
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+                container.appendChild(canvas);
+                
+                return canvas;
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                const container = document.getElementById(containerId);
+                container.innerHTML = '<div class="error">Error generating QR code</div>';
+                return null;
+            }
+        }
+
+        // Download single QR code
+        function downloadQRCode(eventId, eventTitle) {
+            const canvas = document.querySelector(`#qr-${eventId} canvas`);
+            if (!canvas) {
+                alert('QR code not ready yet. Please wait a moment and try again.');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.download = `QR_${eventTitle.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Download all QR codes as individual files
+        function downloadAllQRCodes() {
+            const canvases = document.querySelectorAll('.qr-code-container canvas');
+            if (canvases.length === 0) {
+                alert('QR codes are still generating. Please wait a moment and try again.');
+                return;
+            }
+
+            canvases.forEach((canvas, index) => {
+                const eventIds = Object.keys(events);
+                const eventId = eventIds[index];
+                const eventTitle = events[eventId].title;
+                
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.download = `QR_${eventTitle.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                }, index * 500); // Stagger downloads
+            });
+        }
+
+        // Generate combined QR code (links to main page)
+        async function generateCombinedQR() {
+            const mainUrl = "https://valuecreationsummit.accessviewafrica.com/";
+            
+            try {
+                const canvas = document.createElement('canvas');
+                await QRCode.toCanvas(canvas, mainUrl, {
+                    width: 300,
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+
+                // Create modal to show combined QR
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                `;
+
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = `
+                    background: white;
+                    padding: 30px;
+                    border-radius: 15px;
+                    text-align: center;
+                    max-width: 400px;
+                    width: 90%;
+                `;
+
+                modalContent.innerHTML = `
+                    <h3 style="color: #2d8659; margin-bottom: 20px;">Combined QR Code</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Links to main event page</p>
+                    <div style="margin: 20px 0;">${canvas.outerHTML}</div>
+                    <p style="color: #666; font-size: 0.9em; margin-bottom: 20px;">${mainUrl}</p>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button onclick="downloadCombinedQR()" style="
+                            background: #44b678;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                        ">📥 Download</button>
+                        <button onclick="closeCombinedQR()" style="
+                            background: #95a5a6;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                        ">Close</button>
+                    </div>
+                `;
+
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+
+                // Store canvas for download
+                window.combinedQRCanvas = canvas;
+
+            } catch (error) {
+                console.error('Error generating combined QR code:', error);
+                alert('Error generating combined QR code');
+            }
+        }
+
+        // Download combined QR code
+        function downloadCombinedQR() {
+            if (window.combinedQRCanvas) {
+                const link = document.createElement('a');
+                link.download = 'QR_All_Events_Combined.png';
+                link.href = window.combinedQRCanvas.toDataURL();
+                link.click();
+            }
+        }
+
+        // Close combined QR modal
+        function closeCombinedQR() {
+            const modal = document.querySelector('div[style*="position: fixed"]');
+            if (modal) {
+                modal.remove();
+            }
+            window.combinedQRCanvas = null;
+        }
+
+        // Initialize QR code generation
+        async function initializeQRCodes() {
+            const qrGrid = document.getElementById('qrGrid');
+            qrGrid.innerHTML = '';
+
+            for (const [eventId, eventData] of Object.entries(events)) {
+                const qrCard = await generateQRCode(eventId, eventData);
+                qrGrid.appendChild(qrCard);
+                
+                // Generate the actual QR code
+                await generateQRCanvas(eventData.url, `qr-${eventId}`);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeQRCodes);
+    </script>
+</body>
+</html>

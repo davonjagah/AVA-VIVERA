@@ -27,4 +27,9 @@ router.get("/dftyeyyeyeyeeyeyeyeye123l", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "views", "offline-register.html"));
 });
 
+// QR Code Generator page route
+router.get("/qr-generator", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "views", "qr-generator.html"));
+});
+
 module.exports = router;
