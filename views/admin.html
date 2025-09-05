@@ -445,6 +445,12 @@
                         <option value="ceo">CEO Roundtable</option>
                         <option value="wealth">Wealth Creation</option>
                     </select>
+                    <select id="statusFilter" onchange="filterRegistrations()">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="failed">Failed</option>
+                    </select>
                 </div>
                 <button class="export-btn" onclick="exportToCSV()">📊 Export CSV</button>
                 <button class="refresh-btn" onclick="loadRegistrations()">🔄 Refresh</button>
@@ -594,12 +600,22 @@
         // Global variable to store all registrations
         let allRegistrations = [];
 
-        // Filter registrations by event type
+        // Filter registrations by event type and status
         function filterRegistrations() {
             const eventFilter = document.getElementById('eventFilter').value;
-            const filteredRegistrations = eventFilter 
-                ? allRegistrations.filter(reg => reg.eventType === eventFilter)
-                : allRegistrations;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            let filteredRegistrations = allRegistrations;
+            
+            // Apply event filter
+            if (eventFilter) {
+                filteredRegistrations = filteredRegistrations.filter(reg => reg.eventType === eventFilter);
+            }
+            
+            // Apply status filter
+            if (statusFilter) {
+                filteredRegistrations = filteredRegistrations.filter(reg => reg.paymentStatus === statusFilter);
+            }
             
             displayRegistrations(filteredRegistrations);
         }
@@ -607,9 +623,19 @@
         // Export registrations to CSV
         function exportToCSV() {
             const eventFilter = document.getElementById('eventFilter').value;
-            const registrationsToExport = eventFilter 
-                ? allRegistrations.filter(reg => reg.eventType === eventFilter)
-                : allRegistrations;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            let registrationsToExport = allRegistrations;
+            
+            // Apply event filter
+            if (eventFilter) {
+                registrationsToExport = registrationsToExport.filter(reg => reg.eventType === eventFilter);
+            }
+            
+            // Apply status filter
+            if (statusFilter) {
+                registrationsToExport = registrationsToExport.filter(reg => reg.paymentStatus === statusFilter);
+            }
             
             if (registrationsToExport.length === 0) {
                 alert('No registrations to export');
