@@ -5,7 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event QR Code Generator</title>
     <link rel="stylesheet" href="/css/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        // Fallback QRCode library loading
+        if (typeof QRCode === 'undefined') {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+            fallbackScript.onerror = function() {
+                console.error('Failed to load QRCode library from both CDNs');
+            };
+            document.head.appendChild(fallbackScript);
+        }
+    </script>
     <style>
         .qr-container {
             max-width: 1200px;
@@ -247,6 +258,11 @@
         // Generate QR code canvas
         async function generateQRCanvas(url, containerId) {
             try {
+                // Check if QRCode library is loaded
+                if (typeof QRCode === 'undefined') {
+                    throw new Error('QRCode library not loaded');
+                }
+
                 const canvas = document.createElement('canvas');
                 await QRCode.toCanvas(canvas, url, {
                     width: 200,
@@ -265,7 +281,7 @@
             } catch (error) {
                 console.error('Error generating QR code:', error);
                 const container = document.getElementById(containerId);
-                container.innerHTML = '<div class="error">Error generating QR code</div>';
+                container.innerHTML = '<div class="error">Error generating QR code: ' + error.message + '</div>';
                 return null;
             }
         }
@@ -311,6 +327,11 @@
             const mainUrl = "https://valuecreationsummit.accessviewafrica.com/";
             
             try {
+                // Check if QRCode library is loaded
+                if (typeof QRCode === 'undefined') {
+                    throw new Error('QRCode library not loaded');
+                }
+
                 const canvas = document.createElement('canvas');
                 await QRCode.toCanvas(canvas, mainUrl, {
                     width: 300,
@@ -402,17 +423,51 @@
             window.combinedQRCanvas = null;
         }
 
+        // Wait for QRCode library to load
+        function waitForQRCode() {
+            return new Promise((resolve, reject) => {
+                if (typeof QRCode !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50; // 5 seconds max wait
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof QRCode !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('QRCode library failed to load'));
+                    }
+                }, 100);
+            });
+        }
+
         // Initialize QR code generation
         async function initializeQRCodes() {
             const qrGrid = document.getElementById('qrGrid');
-            qrGrid.innerHTML = '';
+            qrGrid.innerHTML = '<div class="loading">Loading QR code library...</div>';
 
-            for (const [eventId, eventData] of Object.entries(events)) {
-                const qrCard = await generateQRCode(eventId, eventData);
-                qrGrid.appendChild(qrCard);
+            try {
+                // Wait for QRCode library to be available
+                await waitForQRCode();
                 
-                // Generate the actual QR code
-                await generateQRCanvas(eventData.url, `qr-${eventId}`);
+                qrGrid.innerHTML = '';
+                
+                for (const [eventId, eventData] of Object.entries(events)) {
+                    const qrCard = await generateQRCode(eventId, eventData);
+                    qrGrid.appendChild(qrCard);
+                    
+                    // Generate the actual QR code
+                    await generateQRCanvas(eventData.url, `qr-${eventId}`);
+                }
+            } catch (error) {
+                console.error('Failed to initialize QR codes:', error);
+                qrGrid.innerHTML = '<div class="error">Failed to load QR code library. Please refresh the page.</div>';
             }
         }
 
