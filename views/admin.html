@@ -380,6 +380,10 @@
             color: #e74c3c; 
             font-weight: 600;
         }
+        .status-deferred { 
+            color: #f39c12; 
+            font-weight: 600;
+        }
         .client-ref {
             font-family: monospace;
             font-size: 0.9em;
@@ -466,6 +470,7 @@
                         <option value="pending">Pending</option>
                         <option value="completed">Completed</option>
                         <option value="failed">Failed</option>
+                        <option value="deferred">Deferred</option>
                     </select>
                 </div>
                 <button class="export-btn" onclick="exportToCSV()">📊 Export CSV</button>
