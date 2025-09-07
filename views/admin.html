@@ -127,6 +127,39 @@
             background: linear-gradient(135deg, #e74c3c, #c0392b);
         }
         
+        .success-email-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        
+        .success-email-btn:hover {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+        
+        .success-email-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .success-email-btn.sending {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .success-email-btn.success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+        
+        .success-email-btn.error {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
         .status-modal {
             display: none;
             position: fixed;
@@ -381,7 +414,7 @@
             font-weight: 600;
         }
         .status-deferred { 
-            color: #f39c12; 
+            color: #9b59b6; 
             font-weight: 600;
         }
         .client-ref {
@@ -579,6 +612,12 @@
                                         📧 Remind
                                     </button>
                                     ` : ''}
+                                    ${['deferred', 'completed'].includes(reg.paymentStatus) ? `
+                                    <button class="success-email-btn" onclick="sendSuccessEmail('${reg.clientReference}', '${reg.customerInfo.fullName}')" 
+                                            data-client-ref="${reg.clientReference}">
+                                        ✅ Success Email
+                                    </button>
+                                    ` : ''}
                                 </td>
                             </tr>
                         `).join('')}
@@ -609,6 +648,12 @@
                             <button class="remind-btn" onclick="sendPaymentReminder('${reg.clientReference}', '${reg.customerInfo.fullName}')" 
                                     data-client-ref="${reg.clientReference}">
                                 📧 Remind
+                            </button>
+                            ` : ''}
+                            ${['deferred', 'completed'].includes(reg.paymentStatus) ? `
+                            <button class="success-email-btn" onclick="sendSuccessEmail('${reg.clientReference}', '${reg.customerInfo.fullName}')" 
+                                    data-client-ref="${reg.clientReference}">
+                                ✅ Success Email
                             </button>
                             ` : ''}
                         </div>
@@ -852,6 +897,72 @@
                 button.textContent = '❌ Error';
                 
                 showStatusNotification('error', `Error sending reminder to ${customerName}: ${error.message}`);
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.classList.remove('sending', 'success', 'error');
+                }, 3000);
+            }
+        }
+        
+        // Send success email to deferred and completed registrations
+        async function sendSuccessEmail(clientReference, customerName) {
+            const button = document.querySelector(`[data-client-ref="${clientReference}"].success-email-btn`);
+            if (!button) return;
+            
+            const originalText = button.textContent;
+            
+            try {
+                // Disable button and show loading state
+                button.disabled = true;
+                button.classList.add('sending');
+                button.textContent = '📧 Sending...';
+                
+                // Send success email request
+                const response = await fetch('/api/send-success-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ clientReference }),
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success state
+                    button.classList.remove('sending');
+                    button.classList.add('success');
+                    button.textContent = '✅ Sent';
+                    
+                    showStatusNotification('success', `Success email sent to ${customerName}`);
+                } else {
+                    // Show error state
+                    button.classList.remove('sending');
+                    button.classList.add('error');
+                    button.textContent = '❌ Failed';
+                    
+                    showStatusNotification('error', `Failed to send success email to ${customerName}: ${result.error}`);
+                }
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.classList.remove('sending', 'success', 'error');
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error sending success email:', error);
+                
+                // Show error state
+                button.classList.remove('sending');
+                button.classList.add('error');
+                button.textContent = '❌ Error';
+                
+                showStatusNotification('error', `Error sending success email to ${customerName}: ${error.message}`);
                 
                 // Reset button after 3 seconds
                 setTimeout(() => {

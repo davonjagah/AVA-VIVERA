@@ -944,6 +944,132 @@ router.post("/send-payment-reminder", async (req, res) => {
   }
 });
 
+// Send success email to deferred and completed registrations
+router.post("/send-success-email", async (req, res) => {
+  console.log("📧 API: Success email request received");
+  console.log("📧 Request body:", req.body);
+
+  try {
+    const { clientReference } = req.body;
+
+    if (!clientReference) {
+      console.error("❌ API: Missing clientReference in request");
+      return res.status(400).json({
+        success: false,
+        error: "clientReference is required",
+      });
+    }
+
+    console.log(
+      "📧 API: Looking up registration for clientReference:",
+      clientReference
+    );
+
+    const db = await getDatabase();
+    const registrations = db.collection("registrations");
+
+    // Find the registration
+    const registration = await registrations.findOne({ clientReference });
+
+    if (!registration) {
+      console.error(
+        "❌ API: Registration not found for clientReference:",
+        clientReference
+      );
+      return res.status(404).json({
+        success: false,
+        error: "Registration not found",
+      });
+    }
+
+    console.log("📧 API: Registration found:", {
+      clientReference: registration.clientReference,
+      customerName: registration.customerInfo.fullName,
+      customerEmail: registration.customerInfo.email,
+      eventType: registration.eventType,
+      paymentStatus: registration.paymentStatus,
+    });
+
+    // Only allow success emails for deferred and completed registrations
+    if (!["deferred", "completed"].includes(registration.paymentStatus)) {
+      console.error(
+        "❌ API: Cannot send success email - payment status is not deferred or completed:",
+        registration.paymentStatus
+      );
+      return res.status(400).json({
+        success: false,
+        error:
+          "Can only send success emails for deferred or completed registrations",
+      });
+    }
+
+    console.log(
+      "📧 API: Payment status is eligible, proceeding to send success email"
+    );
+
+    // Create payment data for the email
+    const paymentData = {
+      Amount:
+        registration.paymentData?.amount ||
+        registration.eventPrice?.replace(/[^\d.]/g, "") ||
+        0,
+    };
+
+    // Send the success email
+    console.log("📧 API: Calling sendPaymentConfirmation function...");
+    const emailResult = await sendPaymentConfirmation(
+      registration,
+      paymentData
+    );
+    console.log("📧 API: sendPaymentConfirmation result:", emailResult);
+
+    if (emailResult.success) {
+      console.log(
+        "✅ API: Success email sent successfully, updating database..."
+      );
+
+      // Update the registration to track success email sent
+      const updateResult = await registrations.updateOne(
+        { clientReference },
+        {
+          $set: {
+            lastSuccessEmailSent: new Date(),
+            successEmailCount: (registration.successEmailCount || 0) + 1,
+          },
+        }
+      );
+
+      console.log("✅ API: Database updated successfully:", updateResult);
+
+      res.json({
+        success: true,
+        message: "Success email sent successfully",
+        emailResult,
+        clientReference,
+        databaseUpdate: updateResult,
+      });
+    } else {
+      console.error("❌ API: Failed to send success email");
+      console.error("❌ API: Email error:", emailResult.error);
+
+      res.status(500).json({
+        success: false,
+        error: "Failed to send success email",
+        emailError: emailResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("❌ API: Error in send-success-email endpoint:", error);
+    console.error("❌ API: Error stack:", error.stack);
+
+    res.status(500).json({
+      success: false,
+      error: "Failed to send success email",
+      details: error.message,
+    });
+  }
+});
+
 // Test Hubtel transaction status check endpoint
 router.post("/test-hubtel-status", async (req, res) => {
   try {
