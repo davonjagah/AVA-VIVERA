@@ -1303,8 +1303,11 @@ router.get("/verify/:clientReference", async (req, res) => {
       });
     }
 
-    // Check if payment was successful
-    if (registration.paymentStatus !== "completed") {
+    // Check if payment was successful (completed or deferred)
+    if (
+      registration.paymentStatus !== "completed" &&
+      registration.paymentStatus !== "deferred"
+    ) {
       return res.status(400).json({
         success: false,
         message: "Payment not completed",
