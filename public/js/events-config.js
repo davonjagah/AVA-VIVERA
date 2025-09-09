@@ -1,5 +1,14 @@
 // Frontend Events configuration
 const events = {
+  wealth: {
+    title: "Register for Wealth Creation Masterclass",
+    subtitle: "Wealth Creation Strategies Masterclass",
+    details: "September 12, 2025 • 9:00 AM • Accra City Hotel • 1,500 GHS",
+    eventName: "Wealth Creation Strategies Masterclass",
+    price: "1,500 GHS",
+    date: "September 12, 2025",
+    location: "Accra City Hotel",
+  },
   sme: {
     title: "Register for SMEs Connect",
     subtitle: "Beyond Profit - Building Legacies",
@@ -17,15 +26,6 @@ const events = {
     eventName: "CEO Roundtable: Lead the Business, Scale to Legacy",
     price: "2,500 GHS",
     date: "September 9, 2025",
-    location: "Accra City Hotel",
-  },
-  wealth: {
-    title: "Register for Wealth Creation Masterclass",
-    subtitle: "Wealth Creation Strategies Masterclass",
-    details: "September 12, 2025 • 10:00 AM • Accra City Hotel • 1,200 GHS",
-    eventName: "Wealth Creation Strategies Masterclass",
-    price: "1,200 GHS",
-    date: "September 12, 2025",
     location: "Accra City Hotel",
   },
 };
